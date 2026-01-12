@@ -24,6 +24,15 @@ class MyCustomStrategy(qx.BaseBot):
             "rsi_threshold": 30,
         }
 
+        # 1.1 CLAMPS: Define valid ranges for the optimizer (Min, Max)
+        # Required for "Optimize" mode. Keys must match 'tune'.
+        self.clamps = {
+            "period_fast": (5, 50),
+            "period_slow": (20, 100),
+            "rsi_period": (5, 30),
+            "rsi_threshold": (20, 40),
+        }
+
     def indicators(self, data):
         # 2. INDICATORS: Calculate technical indicators using pandas-ta (qx.ti)
         # Returns a dictionary where keys exactly match what you need in 'strategy'
@@ -81,7 +90,7 @@ if __name__ == "__main__":
         begin="2023-01-01",
         end="2023-06-01"
     )
-    
+    # python strategies/strategy_base.py
     # Initialize and Run
     bot = MyCustomStrategy()
     qx.dispatch(bot, data)

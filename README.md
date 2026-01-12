@@ -109,55 +109,30 @@ You can now configure your API keys using a `.env` file instead of typing them e
 
 ---
 
-## 🧪 Example Bot: EMA Crossover
+## 🧪 Strategy Development
 
-```python
-import qtradex as qx
-import numpy as np
+We provide a **Standard Template** to help you build compatible strategies instantly.
 
+1. **Locate the Template:**
+   Go to the `strategies/` folder and find `strategy_base.py`.
 
-class EMACrossBot(qx.BaseBot):
-    def __init__(self):
-        self.tune = {"fast_ema": 10, "slow_ema": 50}
+2. **Create Your Strategy:**
+   Duplicate the file (`strategies/my_strategy.py`), rename the class, and implement your logic.
+   
+   The template includes:
+   - `__init__`: Define tunable parameters (for AI optimization).
+   - `indicators`: Calculate Pandas-TA indicators.
+   - `strategy`: Define your Buy/Sell logic.
+   - `plot`: Configure charts.
 
-    def indicators(self, data):
-        return {
-            "fast_ema": qx.ti.ema(data["close"], self.tune["fast_ema"]),
-            "slow_ema": qx.ti.ema(data["close"], self.tune["slow_ema"]),
-        }
-
-    def strategy(self, tick_info, indicators):
-        fast = indicators["fast_ema"]
-        slow = indicators["slow_ema"]
-        if fast > slow:
-            return qx.Buy()
-        elif fast < slow:
-            return qx.Sell()
-        return qx.Thresholds(buying=0.5 * fast, selling=2 * fast)
-
-    def plot(self, *args):
-        qx.plot(
-            self.info,
-            *args,
-            (
-                # key name    label    color   axis idx   axis name
-                ("fast_ema", "EMA 1", "white", 0,        "EMA Cross"),
-                ("slow_ema", "EMA 2", "cyan",  0,        "EMA Cross"),
-            )
-        )
-
-
-# Load data and run
-data = qx.Data(
-    exchange="kucoin",
-    asset="BTC",
-    currency="USDT",
-    begin="2020-01-01",
-    end="2023-01-01"
-)
-bot = EMACrossBot()
-qx.dispatch(bot, data)
-```
+3. **Run It:**
+   Simply run the file directly. It comes with a built-in launcher.
+   ```bash
+   python strategies/strategy_base.py
+   # or
+   python strategies/my_strategy.py
+   ```
+   This will open the QTradeX interactive menu automatically.
 
 🔗 See more bots in [QTradeX AI Agents](https://github.com/squidKid-deluxe/QTradeX-AI-Agents)
 
