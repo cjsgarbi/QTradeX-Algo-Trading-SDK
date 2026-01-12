@@ -46,8 +46,8 @@ Whether you're exploring a simple EMA crossover or engineering a strategy with 2
 - 🧠 **Bot Development**: Extend `BaseBot` to craft custom strategies
 - 🔁 **Backtesting**: Plug-and-play CLI & code-based testing
 - 🧬 **Optimization**: Use QPSO or LSGA to fine-tune parameters
-- 📊 **Indicators**: Wrapped Tulip indicators for blazing performance
-- 🌐 **Data Sources**: Pull candles from 100+ CEXs/DEXs with CCXT
+- 📊 **Indicators**: **Pandas-TA** integration (Pure Python) - No C++ required!
+- 🌐 **Data Sources**: Pull candles from 100+ CEXs/DEXs with CCXT & BitShares (Native)
 - 📈 **Performance Metrics**: Evaluate bots with ROI, Sortino, Win Rate
 - 🤖 **Speed**: Up to 50+ backtests/sec on low-end hardware
 
@@ -75,41 +75,37 @@ qtradex/
 
 ### Install
 
-#### Linux / Mac
+**Now 100% Compatible with Windows, Linux & Mac (No C++ Build Tools Required)**
+
 ```bash
 git clone https://github.com/squidKid-deluxe/QTradeX-Algo-Trading-SDK.git QTradeX
 cd QTradeX
-pip install -e .
-```
 
-#### Windows (PowerShell)
-```powershell
-git clone https://github.com/squidKid-deluxe/QTradeX-Algo-Trading-SDK.git QTradeX
-cd QTradeX
-
-# Option A: Standard Install
-python -m venv .venv
-.venv\Scripts\activate
-pip install -e .
-
-# Option B: Recommended (if you have build errors)
-# Uses 'uv' for faster resolution and pre-built wheels
+# Recommended: Use 'uv' for blazing fast installation
 pip install uv
 uv venv
+# Windows
 .venv\Scripts\activate
+# Linux/Mac
+source .venv/bin/activate
+
+# Install (All dependencies are now pure Python wheels)
 uv pip install -e .
 ```
 
-### Optional Features
-**BitShares Support:**
-By default, BitShares support is disabled to avoid installation errors on Windows. To enable it (requires C++ build tools):
-```bash
-# Standard
-pip install -e .[bitshares]
+### Configuration (New!)
 
-# UV
-uv pip install -e .[bitshares]
-````
+You can now configure your API keys using a `.env` file instead of typing them every time.
+
+1. Rename `.env.example` to `.env`.
+2. Add your keys using the format `[EXCHANGE]_API_KEY`:
+   ```ini
+   BINANCE_API_KEY=your_key
+   BINANCE_API_SECRET=your_secret
+   ```
+3. **Auto-Save:** If you don't have a `.env` file, the bot will ask you to enter keys and offer to save them automatically for next time!
+
+
 
 ---
 

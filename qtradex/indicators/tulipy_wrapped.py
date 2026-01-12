@@ -170,6 +170,12 @@ def tsf(data, period):
 
 @cache
 @float_period(1,)
+def wilders(data, period):
+    # Wilder's Smoothing aka RMA
+    return ta.rma(pd.Series(data), length=int(period)).to_numpy()
+
+@cache
+@float_period(1,)
 def linearreg(data, period):
     return ta.linreg(pd.Series(data), length=int(period)).to_numpy()
 

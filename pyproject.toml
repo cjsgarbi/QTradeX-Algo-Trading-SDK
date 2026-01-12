@@ -12,7 +12,10 @@ requires-python = ">=3.9"
 authors = [{name = "squidKid-deluxe"}]  # Optional; adjust as needed
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
 ]
 dependencies = [
     "ccxt",
@@ -27,11 +30,11 @@ dependencies = [
     "pandas_ta",
     "websocket-client",
     "coincurve",
+    "python-dotenv",
 ]
 
 
-[project.optional-dependencies]
-bitshares = ["bitshares-signing"]
+
 
 
 [project.urls]

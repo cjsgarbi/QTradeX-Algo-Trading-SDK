@@ -3,6 +3,10 @@ import shutil
 import time
 from getpass import getpass
 from random import choice, sample
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 import numpy as np
 import qtradex as qx
@@ -106,12 +110,39 @@ def dispatch(bot, data, wallet=None, **kwargs):
     elif choice == 2:
         qx.core.papertrade(bot, data, wallet, **kwargs)
     elif choice in [3, 4]:
+        # Strict Exchange Naming & Auto-Save Logic
+        env_prefix = data.exchange.upper()
+        
+        # Determine variable names
         if data.exchange == "bitshares":
-            api_key = input("Enter username: ")
-            api_secret = getpass("Enter WIF:      ")
+            key_var = "BITSHARES_API_KEY"
+            secret_var = "BITSHARES_API_SECRET"
+            prompt_key = "Enter username: "
+            prompt_secret = "Enter WIF:      "
         else:
-            api_key = getpass("Enter API key:    ")
-            api_secret = getpass("Enter API secret: ")
+            key_var = f"{env_prefix}_API_KEY"
+            secret_var = f"{env_prefix}_API_SECRET"
+            prompt_key = f"Enter {data.exchange} API key:    "
+            prompt_secret = f"Enter {data.exchange} API secret: "
+
+        # Try loading from env
+        api_key = os.getenv(key_var)
+        api_secret = os.getenv(secret_var)
+        
+        # If missing, ask user and offer to save
+        if not api_key or not api_secret:
+            if not api_key:
+                api_key = input(prompt_key)
+            if not api_secret:
+                api_secret = getpass(prompt_secret)
+            
+            # Auto-Save Prompt
+            save = input(f"Save these keys to .env as {key_var}/{secret_var}? (y/n): ").lower()
+            if save == 'y':
+                with open(".env", "a") as f:
+                    f.write(f"\n{key_var}={api_key}\n")
+                    f.write(f"{secret_var}={api_secret}\n")
+                print(f"Keys saved to .env!")
 
         if choice == 3:
             dust = input("Don't trade under this amount of assets (enter for 1e-8): ")

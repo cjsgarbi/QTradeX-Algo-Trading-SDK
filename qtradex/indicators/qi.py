@@ -9,7 +9,6 @@ These functions are wrapped as *.pxd and compiled in Cython.
 
 from typing import Dict, Tuple
 
-import cython
 import numpy as np
 import numpy.typing as npt
 import qtradex
@@ -18,6 +17,7 @@ from qtradex.common.utilities import truncate
 from qtradex.indicators import tulipy_wrapped as ti
 from qtradex.indicators.cache_decorator import cache, float_period
 
+cnp = np
 DATA_TYPE = np.float64
 MA_TYPES = {
     1: ti.dema,
@@ -98,10 +98,10 @@ def ichimoku(
     high: npt.NDArray[DATA_TYPE],
     low: npt.NDArray[DATA_TYPE],
     close: npt.NDArray[DATA_TYPE],
-    tenkan_period: cython.int,
-    kijun_period: cython.int,
-    senkou_b_period: cython.int,
-    senkou_span: cython.int,
+    tenkan_period: int,
+    kijun_period: int,
+    senkou_b_period: int,
+    senkou_span: int,
 ) -> Tuple[
     npt.NDArray[DATA_TYPE],
     npt.NDArray[DATA_TYPE],
@@ -157,7 +157,7 @@ def vortex(
     high: npt.NDArray[np.float64],
     low: npt.NDArray[np.float64],
     close: npt.NDArray[np.float64],
-    window: cython.int,
+    window: int,
 ) -> Tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     """
     Calculate the Vortex Indicator (VI).
@@ -206,11 +206,11 @@ def vortex(
 @float_period(1, 2, 3, 4, 5)
 def kst(
     close: cnp.ndarray,
-    roc1_period: cython.int,
-    roc2_period: cython.int,
-    roc3_period: cython.int,
-    roc4_period: cython.int,
-    kst_smoothing: cython.int,
+    roc1_period: int,
+    roc2_period: int,
+    roc3_period: int,
+    roc4_period: int,
+    kst_smoothing: int,
 ) -> Tuple[npt.NDArray[DATA_TYPE], npt.NDArray[DATA_TYPE]]:
     """
     Calculate the KST (Know Sure Thing) indicator.
@@ -262,7 +262,7 @@ def kst(
 @cache
 @float_period(1, 2)
 def frama(
-    close: cnp.ndarray, period: cython.int, fractal_period: cython.int
+    close: cnp.ndarray, period: int, fractal_period: int
 ) -> npt.NDArray[DATA_TYPE]:
     """
     Calculate the Fractal Adaptive Moving Average (FRAMA).
@@ -372,8 +372,8 @@ def ravi(
     high: npt.NDArray[DATA_TYPE],
     low: npt.NDArray[DATA_TYPE],
     close: npt.NDArray[DATA_TYPE],
-    short_period: cython.int,
-    long_period: cython.int,
+    short_period: int,
+    long_period: int,
 ) -> npt.NDArray[DATA_TYPE]:
     """
     Calculate the Range Action Verification Index (RAVI).
@@ -425,7 +425,7 @@ def ravi(
 @cache
 @float_period(1)
 def aema(
-    close: npt.NDArray[DATA_TYPE], period: cython.int, alpha: float = 0.1
+    close: npt.NDArray[DATA_TYPE], period: int, alpha: float = 0.1
 ) -> npt.NDArray[DATA_TYPE]:
     """
     Calculate the Adaptive Exponential Moving Average (AEMA).
@@ -469,10 +469,10 @@ def aema(
 @float_period(1, 2, 3)
 def typed_macd(
     close: npt.NDArray[DATA_TYPE],
-    short_period: cython.int,
-    long_period: cython.int,
-    signal_period: cython.int,
-    ma_type: cython.int,  # New argument for moving average type
+    short_period: int,
+    long_period: int,
+    signal_period: int,
+    ma_type: int,  # New argument for moving average type
 ) -> Tuple[npt.NDArray[DATA_TYPE], npt.NDArray[DATA_TYPE], npt.NDArray[DATA_TYPE]]:
     """
     Calculate the Moving Average Convergence Divergence (MACD) using specified moving average type.
@@ -528,9 +528,9 @@ def typed_macd(
 @float_period(1, 3)
 def typed_bbands(
     close: npt.NDArray[DATA_TYPE],
-    ma_period: cython.int,
-    ma_type: cython.int,  # New argument for moving average type
-    std_period: cython.int,  # Seperate standard deviation period
+    ma_period: int,
+    ma_type: int,  # New argument for moving average type
+    std_period: int,  # Seperate standard deviation period
     deviations: float,
 ) -> Tuple[npt.NDArray[DATA_TYPE], npt.NDArray[DATA_TYPE], npt.NDArray[DATA_TYPE]]:
     """
@@ -576,7 +576,7 @@ def typed_bbands(
 @cache
 @float_period(1, 2)
 def tsi(
-    close: cnp.ndarray, long_period: cython.int, short_period: cython.int
+    close: cnp.ndarray, long_period: int, short_period: int
 ) -> npt.NDArray[DATA_TYPE]:
     """
     Calculate the Trend Strength Indicator (TSI).
@@ -633,8 +633,8 @@ def smi(
     close: npt.NDArray[DATA_TYPE],
     high: npt.NDArray[DATA_TYPE],
     low: npt.NDArray[DATA_TYPE],
-    k_period: cython.int,
-    d_period: cython.int,
+    k_period: int,
+    d_period: int,
 ) -> Tuple[npt.NDArray[DATA_TYPE], npt.NDArray[DATA_TYPE]]:
     """
     Calculate the Stochastic Momentum Index (SMI).
@@ -683,8 +683,8 @@ def eri(
     high: cnp.ndarray,
     low: cnp.ndarray,
     close: cnp.ndarray,
-    ma_period: cython.int,
-    ma_type: cython.int,
+    ma_period: int,
+    ma_type: int,
 ) -> Tuple[npt.NDArray[DATA_TYPE], npt.NDArray[DATA_TYPE]]:
     """
     Calculate the Elder Ray Index, which uses bull and bear power to gauge market strength
@@ -786,7 +786,7 @@ def supertrend(
 @cache
 @float_period(1)
 def arsi(
-    close: npt.NDArray[DATA_TYPE], length: cython.int = 14
+    close: npt.NDArray[DATA_TYPE], length: int = 14
 ) -> Tuple[npt.NDArray[DATA_TYPE]]:
     """
     Calculate the Adaptive Relative Strength Index (ARSI).
@@ -824,9 +824,9 @@ def keltner(
     high: npt.NDArray[DATA_TYPE],
     low: npt.NDArray[DATA_TYPE],
     close: npt.NDArray[DATA_TYPE],
-    atr_period: cython.int,
-    ma_period: cython.int,
-    ma_type: cython.int,
+    atr_period: int,
+    ma_period: int,
+    ma_type: int,
     multiplier: float = 1.5,
 ) -> Tuple[npt.NDArray[DATA_TYPE], npt.NDArray[DATA_TYPE], npt.NDArray[DATA_TYPE]]:
     """
@@ -872,7 +872,7 @@ def keltner(
 @cache
 @float_period(2)
 def donchian(
-    high: npt.NDArray[DATA_TYPE], low: npt.NDArray[DATA_TYPE], period: cython.int
+    high: npt.NDArray[DATA_TYPE], low: npt.NDArray[DATA_TYPE], period: int
 ) -> Tuple[npt.NDArray[DATA_TYPE], npt.NDArray[DATA_TYPE], npt.NDArray[DATA_TYPE]]:
     """
     Calculate the Donchian Channels.
@@ -1104,7 +1104,7 @@ def market_profile(
 @cache
 @float_period(1)
 def price_action(
-    close: npt.NDArray[DATA_TYPE], lookback: cython.int, threshold: float = 0.01
+    close: npt.NDArray[DATA_TYPE], lookback: int, threshold: float = 0.01
 ) -> Tuple[npt.NDArray[DATA_TYPE], npt.NDArray[DATA_TYPE]]:
     """
     Identify support and resistance levels based on price action.
@@ -1186,7 +1186,7 @@ def holt_winters_des(
 @float_period(1)
 def ulcer_index(
     close: npt.NDArray[np.float64],
-    window: cython.int,
+    window: int,
 ) -> npt.NDArray[np.float64]:
     """
     Calculate the Ulcer Index (UI).
@@ -1224,7 +1224,7 @@ def ulcer_index(
 @float_period(1)
 def trix(
     close: npt.NDArray[np.float64],
-    window: cython.int,
+    window: int,
 ) -> npt.NDArray[np.float64]:
     """
     Calculate the Trix (TRIX) indicator.
@@ -1260,9 +1260,9 @@ def trix(
 @float_period(1, 2, 3)
 def earsi(
     close: npt.NDArray[DATA_TYPE],
-    auto_min: cython.int,
-    auto_max: cython.int,
-    auto_avg: cython.int,
+    auto_min: int,
+    auto_max: int,
+    auto_avg: int,
 ) -> Tuple[npt.NDArray[DATA_TYPE]]:
     """
     Calculate the Ehlers Adaptive Relative Strength Index (EARSI).
@@ -1303,7 +1303,7 @@ def earsi(
     rsi[auto_min:] = 100 - (100 / (1 + strength[auto_min:]))
 
     def high_pass_filter(
-        src: npt.NDArray[DATA_TYPE], cutoff: cython.int
+        src: npt.NDArray[DATA_TYPE], cutoff: int
     ) -> npt.NDArray[DATA_TYPE]:
         """
         Apply a high-pass filter to the input signal.
@@ -1329,9 +1329,9 @@ def earsi(
     # Calculate adaptive period
     def adaptive_period(
         src: npt.NDArray[DATA_TYPE],
-        min_len: cython.int,
-        max_len: cython.int,
-        ave_len: cython.int,
+        min_len: int,
+        max_len: int,
+        ave_len: int,
     ) -> float:
         filtered = high_pass_filter(src, max_len)
         corr = np.zeros(max_len * 2)
@@ -1388,7 +1388,7 @@ def earsi(
 
 def vhf(
     data: npt.NDArray[np.float64],
-    period: cython.int,
+    period: int,
 ) -> npt.NDArray[np.float64]:
     """
     Vertical Horizontal Filter (VHF).

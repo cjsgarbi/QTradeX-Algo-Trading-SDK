@@ -1,14 +1,18 @@
-try:
-    import bitshares_signing.rpc as bitshares_rpc
-    from bitshares_signing import broker, prototype_order
-    from bitshares_signing.config import NODES
-    BITSHARES_AVAILABLE = True
-except ImportError:
-    BITSHARES_AVAILABLE = False
-    bitshares_rpc = None
-    broker = None
-    prototype_order = None
-    NODES = []
+# try:
+#     import bitshares_signing.rpc as bitshares_rpc
+#     from bitshares_signing import broker, prototype_order
+#     from bitshares_signing.config import NODES
+#     BITSHARES_AVAILABLE = True
+# except ImportError:
+#     BITSHARES_AVAILABLE = False
+#     bitshares_rpc = None
+#     broker = None
+#     prototype_order = None
+#     NODES = []
+import qtradex.bitshares_pure.rpc as bitshares_rpc
+from qtradex.bitshares_pure import broker, prototype_order
+NODES = [] # Define default nodes if needed
+BITSHARES_AVAILABLE = True
 
 DEV = True
 
