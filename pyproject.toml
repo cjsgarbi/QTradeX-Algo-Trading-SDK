@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=64", "wheel", "Cython>=3", "numpy<2"]
+requires = ["setuptools>=64", "wheel", "numpy<2"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -19,14 +19,20 @@ dependencies = [
     "jsonpickle",
     "cachetools",
     "yfinance",
-    "tulipy",
     "finance-datareader",
-    "bitshares-signing",
-    "numpy<2",
+    "numpy",
     "matplotlib",
     "scipy",
     "ttkbootstrap",
+    "pandas_ta",
+    "websocket-client",
+    "coincurve",
 ]
+
+
+[project.optional-dependencies]
+bitshares = ["bitshares-signing"]
+
 
 [project.urls]
 Homepage = "https://github.com/squidKid-deluxe/QTradeX-Algo-Trading-SDK"
@@ -40,4 +46,4 @@ packages = {find = {where = ["."]}}
 include-package-data = true
 
 [tool.setuptools.package-data]
-qtradex = ["*.pyx", "*.pxd"]
+qtradex = ["*.pxd"]

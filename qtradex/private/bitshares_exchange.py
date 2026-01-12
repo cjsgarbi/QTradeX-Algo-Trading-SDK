@@ -1,12 +1,25 @@
-import bitshares_signing.rpc as bitshares_rpc
-from bitshares_signing import broker, prototype_order
-from bitshares_signing.config import NODES
+try:
+    import bitshares_signing.rpc as bitshares_rpc
+    from bitshares_signing import broker, prototype_order
+    from bitshares_signing.config import NODES
+    BITSHARES_AVAILABLE = True
+except ImportError:
+    BITSHARES_AVAILABLE = False
+    bitshares_rpc = None
+    broker = None
+    prototype_order = None
+    NODES = []
 
 DEV = True
 
 
 class BitsharesExchange:
     def __init__(self, user, wif):
+        if not BITSHARES_AVAILABLE:
+            raise ImportError(
+                "BitShares dependencies are not installed. "
+                "Please install with `pip install .[bitshares]`"
+            )
         self.rpc = bitshares_rpc.wss_handshake()
         self.account_name = user
         self.account_id = bitshares_rpc.rpc_get_account(self.rpc, self.account_name)[

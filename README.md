@@ -75,10 +75,40 @@ qtradex/
 
 ### Install
 
+#### Linux / Mac
 ```bash
 git clone https://github.com/squidKid-deluxe/QTradeX-Algo-Trading-SDK.git QTradeX
 cd QTradeX
 pip install -e .
+```
+
+#### Windows (PowerShell)
+```powershell
+git clone https://github.com/squidKid-deluxe/QTradeX-Algo-Trading-SDK.git QTradeX
+cd QTradeX
+
+# Option A: Standard Install
+python -m venv .venv
+.venv\Scripts\activate
+pip install -e .
+
+# Option B: Recommended (if you have build errors)
+# Uses 'uv' for faster resolution and pre-built wheels
+pip install uv
+uv venv
+.venv\Scripts\activate
+uv pip install -e .
+```
+
+### Optional Features
+**BitShares Support:**
+By default, BitShares support is disabled to avoid installation errors on Windows. To enable it (requires C++ build tools):
+```bash
+# Standard
+pip install -e .[bitshares]
+
+# UV
+uv pip install -e .[bitshares]
 ````
 
 ---

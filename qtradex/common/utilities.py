@@ -35,7 +35,7 @@ from threading import Thread
 import re
 
 import numpy as np
-import tulipy as tu
+
 
 PATH = str(os.path.dirname(os.path.abspath(__file__))) + "/"
 NIL = 10e-10

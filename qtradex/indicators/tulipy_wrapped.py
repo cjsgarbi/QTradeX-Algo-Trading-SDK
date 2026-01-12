@@ -1,585 +1,368 @@
+import numpy as np
+import pandas as pd
+import pandas_ta as ta
 from qtradex.indicators.cache_decorator import cache, float_period
-import tulipy
 
+# -----------------------------------------------------------------------------
+# Math / Numpy Wrappers
+# -----------------------------------------------------------------------------
+@cache
+def abs(data):
+    return np.abs(data)
 
 @cache
-def abs(*args, **kwargs):
-    return tulipy.abs(*args, **kwargs)
-
-
-@cache
-def acos(*args, **kwargs):
-    return tulipy.acos(*args, **kwargs)
-
+def add(a, b):
+    return np.add(a, b)
 
 @cache
-def ad(*args, **kwargs):
-    return tulipy.ad(*args, **kwargs)
-
-
-@cache
-def add(*args, **kwargs):
-    return tulipy.add(*args, **kwargs)
-
+def sub(a, b):
+    return np.subtract(a, b)
 
 @cache
-@float_period(4, 5)
-def adosc(*args, **kwargs):
-    return tulipy.adosc(*args, **kwargs)
-
+def mul(a, b):
+    return np.multiply(a, b)
 
 @cache
-@float_period(3,)
-def adx(*args, **kwargs):
-    return tulipy.adx(*args, **kwargs)
-
+def div(a, b):
+    return np.divide(a, b)
 
 @cache
-@float_period(3,)
-def adxr(*args, **kwargs):
-    return tulipy.adxr(*args, **kwargs)
-
+def sum(data, period):
+    return pd.Series(data).rolling(window=int(period)).sum().to_numpy()
 
 @cache
-def ao(*args, **kwargs):
-    return tulipy.ao(*args, **kwargs)
-
-
-@cache
-@float_period(1, 2)
-def apo(*args, **kwargs):
-    return tulipy.apo(*args, **kwargs)
-
+def max(data, period):
+    return pd.Series(data).rolling(window=int(period)).max().to_numpy()
 
 @cache
-@float_period(2,)
-def aroon(*args, **kwargs):
-    return tulipy.aroon(*args, **kwargs)
-
+def min(data, period):
+    return pd.Series(data).rolling(window=int(period)).min().to_numpy()
 
 @cache
-@float_period(2,)
-def aroonosc(*args, **kwargs):
-    return tulipy.aroonosc(*args, **kwargs)
-
+def floor(data):
+    return np.floor(data)
 
 @cache
-def asin(*args, **kwargs):
-    return tulipy.asin(*args, **kwargs)
-
-
-@cache
-def atan(*args, **kwargs):
-    return tulipy.atan(*args, **kwargs)
-
+def ceil(data):
+    return np.ceil(data)
 
 @cache
-@float_period(3,)
-def atr(*args, **kwargs):
-    return tulipy.atr(*args, **kwargs)
-
+def round(data):
+    return np.round(data)
 
 @cache
-def avgprice(*args, **kwargs):
-    return tulipy.avgprice(*args, **kwargs)
+def trunc(data):
+    return np.trunc(data)
 
+@cache
+def sqrt(data):
+    return np.sqrt(data)
+
+@cache
+def exp(data):
+    return np.exp(data)
+
+@cache
+def ln(data):
+    return np.log(data)
+
+@cache
+def log10(data):
+    return np.log10(data)
+
+@cache
+def sin(data):
+    return np.sin(data)
+
+@cache
+def cos(data):
+    return np.cos(data)
+
+@cache
+def tan(data):
+    return np.tan(data)
+
+@cache
+def asin(data):
+    return np.arcsin(data)
+
+@cache
+def acos(data):
+    return np.arccos(data)
+
+@cache
+def atan(data):
+    return np.arctan(data)
+
+@cache
+def sinh(data):
+    return np.sinh(data)
+
+@cache
+def cosh(data):
+    return np.cosh(data)
+
+@cache
+def tanh(data):
+    return np.tanh(data)
+
+@cache
+def todeg(data):
+    return np.degrees(data)
+
+@cache
+def torad(data):
+    return np.radians(data)
+
+# -----------------------------------------------------------------------------
+# Moving Averages
+# -----------------------------------------------------------------------------
+@cache
+@float_period(1,)
+def sma(data, period):
+    return ta.sma(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
 @float_period(1,)
-def bbands(*args, **kwargs):
-    return tulipy.bbands(*args, **kwargs)
-
-
-@cache
-def bop(*args, **kwargs):
-    return tulipy.bop(*args, **kwargs)
-
-
-@cache
-@float_period(3,)
-def cci(*args, **kwargs):
-    return tulipy.cci(*args, **kwargs)
-
-
-@cache
-def ceil(*args, **kwargs):
-    return tulipy.ceil(*args, **kwargs)
-
+def ema(data, period):
+    return ta.ema(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
 @float_period(1,)
-def cmo(*args, **kwargs):
-    return tulipy.cmo(*args, **kwargs)
-
-
-@cache
-def cos(*args, **kwargs):
-    return tulipy.cos(*args, **kwargs)
-
-
-@cache
-def cosh(*args, **kwargs):
-    return tulipy.cosh(*args, **kwargs)
-
-
-@cache
-def crossany(*args, **kwargs):
-    return tulipy.crossany(*args, **kwargs)
-
-
-@cache
-def crossover(*args, **kwargs):
-    return tulipy.crossover(*args, **kwargs)
-
-
-@cache
-@float_period(2,)
-def cvi(*args, **kwargs):
-    return tulipy.cvi(*args, **kwargs)
-
+def wma(data, period):
+    return ta.wma(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
 @float_period(1,)
-def decay(*args, **kwargs):
-    return tulipy.decay(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def dema(*args, **kwargs):
-    return tulipy.dema(*args, **kwargs)
-
-
-@cache
-@float_period(3,)
-def di(*args, **kwargs):
-    return tulipy.di(*args, **kwargs)
-
-
-@cache
-def div(*args, **kwargs):
-    return tulipy.div(*args, **kwargs)
-
-
-@cache
-@float_period(2,)
-def dm(*args, **kwargs):
-    return tulipy.dm(*args, **kwargs)
-
+def dema(data, period):
+    return ta.dema(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
 @float_period(1,)
-def dpo(*args, **kwargs):
-    return tulipy.dpo(*args, **kwargs)
-
-
-@cache
-@float_period(3,)
-def dx(*args, **kwargs):
-    return tulipy.dx(*args, **kwargs)
-
+def tema(data, period):
+    return ta.tema(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
 @float_period(1,)
-def edecay(*args, **kwargs):
-    return tulipy.edecay(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def ema(*args, **kwargs):
-    return tulipy.ema(*args, **kwargs)
-
-
-@cache
-def emv(*args, **kwargs):
-    return tulipy.emv(*args, **kwargs)
-
-
-@cache
-def exp(*args, **kwargs):
-    return tulipy.exp(*args, **kwargs)
-
-
-@cache
-@float_period(2,)
-def fisher(*args, **kwargs):
-    return tulipy.fisher(*args, **kwargs)
-
-
-@cache
-def floor(*args, **kwargs):
-    return tulipy.floor(*args, **kwargs)
-
+def hma(data, period):
+    return ta.hma(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
 @float_period(1,)
-def fosc(*args, **kwargs):
-    return tulipy.fosc(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def hma(*args, **kwargs):
-    return tulipy.hma(*args, **kwargs)
-
+def kama(data, period):
+    return ta.kama(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
 @float_period(1,)
-def kama(*args, **kwargs):
-    return tulipy.kama(*args, **kwargs)
-
-
-@cache
-@float_period(4, 5)
-def kvo(*args, **kwargs):
-    return tulipy.kvo(*args, **kwargs)
-
+def zlema(data, period):
+    return ta.zlma(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
 @float_period(1,)
-def lag(*args, **kwargs):
-    return tulipy.lag(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def linreg(*args, **kwargs):
-    return tulipy.linreg(*args, **kwargs)
-
+def trima(data, period):
+    return ta.trima(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
 @float_period(1,)
-def linregintercept(*args, **kwargs):
-    return tulipy.linregintercept(*args, **kwargs)
-
+def tsf(data, period):
+    # Time Series Forecast roughly linreg forecast
+    return ta.tsf(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
 @float_period(1,)
-def linregslope(*args, **kwargs):
-    return tulipy.linregslope(*args, **kwargs)
-
-
-@cache
-def ln(*args, **kwargs):
-    return tulipy.ln(*args, **kwargs)
-
+def linearreg(data, period):
+    return ta.linreg(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
-def log10(*args, **kwargs):
-    return tulipy.log10(*args, **kwargs)
+@float_period(1,)
+def linreg(data, period):
+    return ta.linreg(pd.Series(data), length=int(period)).to_numpy()
 
+@cache
+@float_period(1,)
+def vwma(close, volume, period):
+    return ta.vwma(pd.Series(close), pd.Series(volume), length=int(period)).to_numpy()
+
+# -----------------------------------------------------------------------------
+# Oscillators / Momentum
+# -----------------------------------------------------------------------------
+@cache
+@float_period(1,)
+def rsi(data, period):
+    return ta.rsi(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
 @float_period(1, 2, 3)
-def macd(*args, **kwargs):
-    return tulipy.macd(*args, **kwargs)
-
-
-@cache
-def marketfi(*args, **kwargs):
-    return tulipy.marketfi(*args, **kwargs)
-
-
-@cache
-@float_period(2,)
-def mass(*args, **kwargs):
-    return tulipy.mass(*args, **kwargs)
-
+def macd(data, fast_period, slow_period, signal_period):
+    # Pandas-TA returns DF: [MACD, HIST, SIGNAL]
+    # Tulipy returns: (macd, signal, histogram)
+    df = ta.macd(pd.Series(data), fast=int(fast_period), slow=int(slow_period), signal=int(signal_period))
+    if df is None: return np.zeros_like(data), np.zeros_like(data), np.zeros_like(data)
+    cols = df.columns
+    # Usually: MACD_..., MACDh_..., MACDs_...
+    return df[cols[0]].to_numpy(), df[cols[2]].to_numpy(), df[cols[1]].to_numpy()
 
 @cache
-@float_period(1,)
-def max(*args, **kwargs):
-    return tulipy.max(*args, **kwargs)
-
+@float_period(3, 4, 5)
+def stoch(high, low, close, k_period, k_slow_period, d_period):
+    # Tulipy: stoch(high, low, close, pct_k_period, pct_k_slow_period, pct_d_period) -> (stoch_k, stoch_d)
+    # Pandas-TA: stoch(high, low, close, k=..., d=..., smooth_k=...)
+    df = ta.stoch(pd.Series(high), pd.Series(low), pd.Series(close), k=int(k_period), d=int(d_period), smooth_k=int(k_slow_period))
+    if df is None: return np.zeros_like(close), np.zeros_like(close)
+    cols = df.columns # STOCHk_..., STOCHd_...
+    return df[cols[0]].to_numpy(), df[cols[1]].to_numpy()
 
 @cache
 @float_period(1,)
-def md(*args, **kwargs):
-    return tulipy.md(*args, **kwargs)
-
+def roc(data, period):
+    return ta.roc(pd.Series(data), length=int(period)).to_numpy()
 
 @cache
-def medprice(*args, **kwargs):
-    return tulipy.medprice(*args, **kwargs)
+@float_period(1,)
+def mom(data, period):
+    return ta.mom(pd.Series(data), length=int(period)).to_numpy()
 
+@cache
+@float_period(1,)
+def cci(high, low, close, period):
+    return ta.cci(pd.Series(high), pd.Series(low), pd.Series(close), length=int(period)).to_numpy()
+
+@cache
+@float_period(3,)
+def adx(high, low, close, period):
+    # Tulipy returns: adx
+    df = ta.adx(pd.Series(high), pd.Series(low), pd.Series(close), length=int(period))
+    if df is None: return np.zeros_like(close)
+    # ADX_14, DMP_14, DMN_14
+    return df.iloc[:, 0].to_numpy()
+
+@cache
+@float_period(3,)
+def bbands(data, period, stddev):
+    # Tulipy: (lower, middle, upper)
+    # Pandas-TA: BBL, BBM, BBU (Lower, Mid, Upper)
+    df = ta.bbands(pd.Series(data), length=int(period), std=float(stddev))
+    if df is None: return np.zeros_like(data), np.zeros_like(data), np.zeros_like(data)
+    return df.iloc[:, 0].to_numpy(), df.iloc[:, 1].to_numpy(), df.iloc[:, 2].to_numpy()
+
+@cache
+@float_period(1,)
+def bop(open, high, low, close):
+    return ta.bop(pd.Series(open), pd.Series(high), pd.Series(low), pd.Series(close)).to_numpy()
+
+@cache
+@float_period(3,)
+def willr(high, low, close, period):
+    return ta.willr(pd.Series(high), pd.Series(low), pd.Series(close), length=int(period)).to_numpy()
+
+@cache
+@float_period(1,)
+def cmo(data, period):
+    return ta.cmo(pd.Series(data), length=int(period)).to_numpy()
+
+@cache
+@float_period(1, 2)
+def apo(data, fast, slow):
+    return ta.apo(pd.Series(data), fast=int(fast), slow=int(slow)).to_numpy()
+
+@cache
+@float_period(1, 2)
+def ppo(data, fast, slow):
+    return ta.ppo(pd.Series(data), fast=int(fast), slow=int(slow)).to_numpy()
+
+# -----------------------------------------------------------------------------
+# Volatility
+# -----------------------------------------------------------------------------
+@cache
+@float_period(3,)
+def atr(high, low, close, period):
+    return ta.atr(pd.Series(high), pd.Series(low), pd.Series(close), length=int(period)).to_numpy()
+
+@cache
+@float_period(3,)
+def natr(high, low, close, period):
+    return ta.natr(pd.Series(high), pd.Series(low), pd.Series(close), length=int(period)).to_numpy()
+
+@cache
+@float_period(1,)
+def stddev(data, period):
+    return ta.stdev(pd.Series(data), length=int(period)).to_numpy()
+
+# -----------------------------------------------------------------------------
+# Volume
+# -----------------------------------------------------------------------------
+@cache
+def obv(close, volume):
+    return ta.obv(pd.Series(close), pd.Series(volume)).to_numpy()
+
+@cache
+def ad(high, low, close, volume):
+    return ta.ad(pd.Series(high), pd.Series(low), pd.Series(close), pd.Series(volume)).to_numpy()
 
 @cache
 @float_period(4,)
-def mfi(*args, **kwargs):
-    return tulipy.mfi(*args, **kwargs)
+def mfi(high, low, close, volume, period):
+    return ta.mfi(pd.Series(high), pd.Series(low), pd.Series(close), pd.Series(volume), length=int(period)).to_numpy()
 
-
+# -----------------------------------------------------------------------------
+# Other / Misc
+# -----------------------------------------------------------------------------
 @cache
-@float_period(1,)
-def min(*args, **kwargs):
-    return tulipy.min(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def mom(*args, **kwargs):
-    return tulipy.mom(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def msw(*args, **kwargs):
-    return tulipy.msw(*args, **kwargs)
-
-
-@cache
-def mul(*args, **kwargs):
-    return tulipy.mul(*args, **kwargs)
-
-
-@cache
-@float_period(3,)
-def natr(*args, **kwargs):
-    return tulipy.natr(*args, **kwargs)
-
-
-@cache
-def nvi(*args, **kwargs):
-    return tulipy.nvi(*args, **kwargs)
-
-
-@cache
-def obv(*args, **kwargs):
-    return tulipy.obv(*args, **kwargs)
-
-
-@cache
-@float_period(1, 2)
-def ppo(*args, **kwargs):
-    return tulipy.ppo(*args, **kwargs)
-
-
-@cache
-def psar(*args, **kwargs):
-    return tulipy.psar(*args, **kwargs)
-
-
-@cache
-def pvi(*args, **kwargs):
-    return tulipy.pvi(*args, **kwargs)
-
+def psar(high, low, accel_step, accel_max):
+    # Tulipy: psar(high, low, af, max_af)
+    df = ta.psar(pd.Series(high), pd.Series(low), af=float(accel_step), max_af=float(accel_max))
+    # PSARl, PSARs, PSARaf, PSARr
+    # Tulipy just returns PSAR values
+    # Pandas-TA combines Long/Short, usually PSARl_... or PSARs_... depending on direction
+    # Simple workaround: combine long and short columns where non-NaN
+    res = df.iloc[:, 0].fillna(0) + df.iloc[:, 1].fillna(0)
+    return res.to_numpy()
 
 @cache
 @float_period(2,)
-def qstick(*args, **kwargs):
-    return tulipy.qstick(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def roc(*args, **kwargs):
-    return tulipy.roc(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def rocr(*args, **kwargs):
-    return tulipy.rocr(*args, **kwargs)
-
-
-@cache
-def round(*args, **kwargs):
-    return tulipy.round(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def rsi(*args, **kwargs):
-    return tulipy.rsi(*args, **kwargs)
-
-
-@cache
-def sin(*args, **kwargs):
-    return tulipy.sin(*args, **kwargs)
-
-
-@cache
-def sinh(*args, **kwargs):
-    return tulipy.sinh(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def sma(*args, **kwargs):
-    return tulipy.sma(*args, **kwargs)
-
-
-@cache
-def sqrt(*args, **kwargs):
-    return tulipy.sqrt(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def stddev(*args, **kwargs):
-    return tulipy.stddev(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def stderr(*args, **kwargs):
-    return tulipy.stderr(*args, **kwargs)
-
-
-@cache
-@float_period(3, 4, 5)
-def stoch(*args, **kwargs):
-    return tulipy.stoch(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def stochrsi(*args, **kwargs):
-    return tulipy.stochrsi(*args, **kwargs)
-
-
-@cache
-def sub(*args, **kwargs):
-    return tulipy.sub(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def sum(*args, **kwargs):
-    return tulipy.sum(*args, **kwargs)
-
-
-@cache
-def tan(*args, **kwargs):
-    return tulipy.tan(*args, **kwargs)
-
-
-@cache
-def tanh(*args, **kwargs):
-    return tulipy.tanh(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def tema(*args, **kwargs):
-    return tulipy.tema(*args, **kwargs)
-
-
-@cache
-def todeg(*args, **kwargs):
-    return tulipy.todeg(*args, **kwargs)
-
-
-@cache
-def torad(*args, **kwargs):
-    return tulipy.torad(*args, **kwargs)
-
-
-@cache
-def tr(*args, **kwargs):
-    return tulipy.tr(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def trima(*args, **kwargs):
-    return tulipy.trima(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def trix(*args, **kwargs):
-    return tulipy.trix(*args, **kwargs)
-
-
-@cache
-def trunc(*args, **kwargs):
-    return tulipy.trunc(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def tsf(*args, **kwargs):
-    return tulipy.tsf(*args, **kwargs)
-
-
-@cache
-def typprice(*args, **kwargs):
-    return tulipy.typprice(*args, **kwargs)
-
-
-@cache
-@float_period(3, 4, 5)
-def ultosc(*args, **kwargs):
-    return tulipy.ultosc(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def var(*args, **kwargs):
-    return tulipy.var(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def vhf(*args, **kwargs):
-    return tulipy.vhf(*args, **kwargs)
-
-
-@cache
-@float_period(1, 2)
-def vidya(*args, **kwargs):
-    return tulipy.vidya(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def volatility(*args, **kwargs):
-    return tulipy.volatility(*args, **kwargs)
-
-
-@cache
-@float_period(1, 2)
-def vosc(*args, **kwargs):
-    return tulipy.vosc(*args, **kwargs)
-
+def aroon(high, low, period):
+    # Tulipy: (aroon_down, aroon_up)
+    df = ta.aroon(pd.Series(high), pd.Series(low), length=int(period))
+    if df is None: return np.zeros_like(high), np.zeros_like(high)
+    # AROOND_14, AROONU_14
+    return df.iloc[:, 0].to_numpy(), df.iloc[:, 1].to_numpy()
 
 @cache
 @float_period(2,)
-def vwma(*args, **kwargs):
-    return tulipy.vwma(*args, **kwargs)
-
-
-@cache
-def wad(*args, **kwargs):
-    return tulipy.wad(*args, **kwargs)
-
-
-@cache
-def wcprice(*args, **kwargs):
-    return tulipy.wcprice(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def wilders(*args, **kwargs):
-    return tulipy.wilders(*args, **kwargs)
-
+def aroonosc(high, low, period):
+    return ta.aroonosc(pd.Series(high), pd.Series(low), length=int(period)).to_numpy()
 
 @cache
 @float_period(3,)
-def willr(*args, **kwargs):
-    return tulipy.willr(*args, **kwargs)
-
-
-@cache
-@float_period(1,)
-def wma(*args, **kwargs):
-    return tulipy.wma(*args, **kwargs)
-
+def ultosc(high, low, close, time1, time2, time3):
+    return ta.uo(pd.Series(high), pd.Series(low), pd.Series(close), p1=int(time1), p2=int(time2), p3=int(time3)).to_numpy()
 
 @cache
 @float_period(1,)
-def zlema(*args, **kwargs):
-    return tulipy.zlema(*args, **kwargs)
+def trix(data, period):
+    # Pandas-TA returns: [TRIX, TRIXs (signal)]
+    # Tulipy returns: trix
+    df = ta.trix(pd.Series(data), length=int(period))
+    if df is None: return np.zeros_like(data)
+    return df.iloc[:, 0].to_numpy()
+
+@cache
+def crossany(a, b):
+    # Returns 1 if crossover, else 0
+    s1 = pd.Series(a)
+    s2 = pd.Series(b)
+    cross = ((s1 > s2) & (s1.shift(1) <= s2.shift(1))) | ((s1 < s2) & (s1.shift(1) >= s2.shift(1)))
+    return cross.astype(int).to_numpy()
+
+@cache
+def crossover(a, b):
+    # Returns 1 if a crosses over b
+    s1 = pd.Series(a)
+    s2 = pd.Series(b)
+    cross = (s1 > s2) & (s1.shift(1) <= s2.shift(1))
+    return cross.astype(int).to_numpy()
+
+@cache
+@float_period(1,)
+def lag(data, period):
+    return pd.Series(data).shift(int(period)).fillna(0).to_numpy()

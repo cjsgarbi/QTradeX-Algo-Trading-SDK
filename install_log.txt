@@ -1,0 +1,8 @@
+  ├ù No solution found when resolving dependencies:
+  Ôò░ÔöÇÔûÂ Because all versions of pandas-ta depend on numpy>=2.2.6 and
+      qtradex==0.0.0 depends on numpy<2, we can conclude that all versions of
+      pandas-ta and qtradex==0.0.0 are incompatible.
+      And because qtradex==0.0.0 depends on pandas-ta, we can conclude that
+      qtradex==0.0.0 cannot be used.
+      And because only qtradex==0.0.0 is available and you require qtradex, we
+      can conclude that your requirements are unsatisfiable.

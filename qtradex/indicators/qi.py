@@ -13,7 +13,6 @@ import cython
 import numpy as np
 import numpy.typing as npt
 import qtradex
-import tulipy as ti
 from numpy import ndarray
 from qtradex.common.utilities import truncate
 from qtradex.indicators import tulipy_wrapped as ti
