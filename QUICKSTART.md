@@ -61,7 +61,7 @@ A QX bot generally consists of the following components:
 
 ```python
 import qtradex as qx
-from qtradex.indicators import tulipy as tu
+from qtradex.indicators import tulipy_wrapped as tu
 from qtradex.private.signals import Buy, Sell, Thresholds
 
 class Bot(qx.core.BaseBot):

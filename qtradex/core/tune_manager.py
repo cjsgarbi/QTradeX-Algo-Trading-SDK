@@ -27,7 +27,7 @@ def get_path(bot):
     return cache_dir
 
 
-def generate_filename(bot):
+def generate_filename(bot, asset=None, currency=None, timeframe=None):
     """
     Generate a unique filename for the bot's tune based on its code and name.
 
@@ -48,40 +48,65 @@ def generate_filename(bot):
 def save_tune(bot, identifier=None):
     """
     Save the current tune of the bot to a JSON file.
+    
+    Formato simplificado:
+    {
+        "asset": "BTC",
+        "currency": "USDT", 
+        "timeframe": 900,
+        "tune": {...},
+        "results": {...}
+    }
 
     Parameters:
     - bot: The bot instance.
-    - identifier: Optional identifier for the tune.
+    - identifier: Optional identifier for the tune (não usado no novo formato).
     """
     filename, source = generate_filename(bot)
 
-    # Attempt to read existing contents from the file
-    try:
-        contents = json.loads(read_file(filename), cls=NdarrayDecoder)
-    except (FileNotFoundError, json.decoder.JSONDecodeError):
-        contents = {"source": source}  # Initialize with source if file doesn't exist
-
-    if "source" not in contents:
-        contents["source"] = source
-
-    # Generate a unique identifier if not provided
-    if identifier is None:
-        identifier = time.ctime()
+    # Extrai asset/currency do bot (passado pelo otimizador)
+    asset = getattr(bot, '_tune_asset', None) or getattr(bot, 'asset', 'UNKNOWN')
+    currency = getattr(bot, '_tune_currency', None) or getattr(bot, 'currency', 'UNKNOWN')
+    timeframe = getattr(bot, 'timeframe', 900)
+    
+    # Adiciona timestamp ao identifier
+    if identifier:
+        identifier = f"{identifier}_{time.ctime()}"
     else:
-        if not isinstance(identifier, str):
-            identifier = json.dumps(identifier)
-        identifier += f"_{time.ctime()}"
+        identifier = f"BEST TUNE_{time.ctime()}"
+    
+    # Separa tune e results se estiverem juntos
+    if isinstance(bot.tune, dict) and 'tune' in bot.tune and 'results' in bot.tune:
+        tune_data = bot.tune['tune']
+        results_data = bot.tune['results']
+    else:
+        tune_data = bot.tune
+        results_data = {}
+    
+    # Tenta ler conteúdo existente
+    try:
+        existing_contents = json.loads(read_file(filename), cls=NdarrayDecoder)
+    except FileNotFoundError:
+        existing_contents = {"source": source}
 
-    # Remove duplicate tunes if they are unlabeled
-    if json.dumps(bot.tune, cls=NdarrayEncoder) in [
-        json.dumps(i, cls=NdarrayEncoder) for i in contents.values()
-    ]:
-        for k, v in contents.copy().items():
-            if json.dumps(v, cls=NdarrayEncoder) == json.dumps(bot.tune, cls=NdarrayEncoder) and "_" not in k:
-                contents.pop(k)
-
-    contents[identifier] = bot.tune  # Save the new tune
-    write_file(filename, contents)  # Write updated contents to file
+    # Gera identificador único com contexto
+    identifier_base = identifier or "BEST TUNE"
+    identifier_full = f"{identifier_base}_{asset}_{currency}_{timeframe}_{time.ctime()}"
+    
+    # Formato limpo e simples do novo registro
+    new_record = {
+        "identifier": identifier_full,
+        "asset": asset,
+        "currency": currency,
+        "timeframe": timeframe,
+        "tune": tune_data,
+        "results": results_data
+    }
+    
+    # Adiciona ao conteúdo existente usando identifier único como chave
+    existing_contents[identifier_full] = new_record
+    
+    write_file(filename, existing_contents)
 
 
 def from_iso_date(iso):
@@ -123,43 +148,62 @@ def load_tune(bot, key=None, sort="roi"):
     except FileNotFoundError:
         raise FileNotFoundError("The given bot has no saved tunes.")
 
+    # NOVO FORMATO FLAT: {identifier, asset, currency, timeframe, tune, results}
+    # Verifica se o conteúdo é um único registro (formato antigo que criamos brevemente) ou dicionário de registros
+    if "tune" in contents and "results" in contents:
+         # Arquivo com um único registro (retrocompatibilidade temporária)
+        return contents["tune"]
+    
+    # FORMATO CENTRALIZADO: {key1: {tune, results, asset, ...}, key2: {...}, ...}
+    # Filtra apenas os tunes que correspondem ao asset/currency/timeframe do bot atual (se disponíveis)
+    
+    # helper para checar compatibilidade
+    def is_compatible(record, bot):
+        # Se o registro tem metadados extendidos, verifica compatibilidade
+        if isinstance(record, dict) and "asset" in record:
+             # Pega dados do bot
+            bot_asset = getattr(bot, 'asset', None)
+            bot_curr = getattr(bot, 'currency', None)
+            bot_tf = getattr(bot, 'timeframe', None)
+            
+            # Se bot não tem dados definidos, aceita tudo (fallback)
+            if not bot_asset or not bot_curr:
+                return True
+                
+            # Verifica match exato
+            return (record.get("asset") == bot_asset and 
+                    record.get("currency") == bot_curr and 
+                    str(record.get("timeframe")) == str(bot_tf))
+        return True # Registros antigos sem metadados são considerados compatíveis
+
+    # Filtra candidatos
+    candidates = {k: v for k, v in contents.items() if k != "source" and is_compatible(v, bot)}
+    
+    if not candidates:
+        # Se não achou nenhum compatível, avisa mas tenta fallback geral ou erro
+        # Tenta pegar qualquer um se não houver compatível (ou raise error?)
+        # Vamos tentar pegar qualquer um para não travar totalmente, mas ideal seria erro.
+        # Por enquanto: raise warning ou erro. Vamos dar erro para forçar otimização correta.
+        raise ValueError(f"No stored tunes found for {getattr(bot, 'asset', '?')}/{getattr(bot, 'currency', '?')} {getattr(bot, 'timeframe', '?')}s. Run Optimize first.")
+
     # Determine the key to load based on sorting criteria
     if key is None:
         if sort == "roi":
             key = max(
-                {k: v for k, v in contents.items() if k != "source"}.items(),
-                key=lambda x: x[1]["results"]["roi"],
+                candidates.items(),
+                key=lambda x: x[1]["results"]["roi"] if isinstance(x[1], dict) and "results" in x[1] else 0,
             )[0]
         else:
-            key = max(
-                [
-                    i
-                    for i in contents.keys()
-                    if i != "source" and i.rsplit("_", 1)[0] == "BEST ROI TUNE"
-                ],
-                key=lambda x: from_iso_date(x.rsplit("_", 1)[1]),
-            )
+            # Para outros sorts, mantemos lógica similar
+             key = max(
+                candidates.items(),
+                key=lambda x: from_iso_date(x[0].rsplit("_", 1)[1]) if "_" in x[0] else 0,
+            )[0]
 
     if key not in contents:
-        # Get the latest key of this name if the specified key is not found
-        latest = max(
-            [
-                (
-                    from_iso_date(i.rsplit("_", 1)[1]),
-                    i.rsplit("_", 1)[1],
-                )
-                for i in contents.keys()
-                if i != "source" and i.rsplit("_", 1)[0] == key
-            ],
-            key=lambda x: x[0],
-        )
-        key = [i for i in contents.keys() if i.endswith(latest[1])]
-        if key:
-            key = key[0]
-        else:
-            raise KeyError(
-                "Unknown tune key. Try using `get_tunes(bot)` to find stored tunes."
-            )
+         # Logica de busca por sulfixo (mantida, mas agora buscando em candidates se possível ou contents geral)
+        # Simplificação: se a chave exata não tá, tenta achar
+         raise KeyError(f"Tune key {key} not found.")
 
     return contents[key]["tune"]  # Return the loaded tune
 

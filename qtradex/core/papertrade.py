@@ -49,7 +49,7 @@ def print_trade(data, initial_balances, new_balances, operation, now, last_trade
             " --- ",
             it("red", f"SELLING: {operation.selling}"),
         )
-    else:
+    elif hasattr(operation, "price") and operation.price is not None:
         print(f"Execution price: {operation.price}")
     print()
     print(
@@ -81,6 +81,12 @@ def papertrade(bot, data, wallet=None, tick_size=60 * 15, tick_pause=60 * 5, **k
     None
     """
     kwargs.pop("fine_data", None)
+    
+    # Se a estrategia tiver um timeframe definido, usamos ele como tick_size
+    if hasattr(bot, "timeframe"):
+        print(f"Using strategy timeframe: {bot.timeframe}s")
+        tick_size = bot.timeframe
+        
     bot.info = Info({"mode": "papertrade"})
     if wallet is None:
         wallet = PaperWallet({data.asset: 0, data.currency: 1})
@@ -90,6 +96,7 @@ def papertrade(bot, data, wallet=None, tick_size=60 * 15, tick_pause=60 * 5, **k
     bot.info._set("start", now)
     # we only need `bot.autorange` worth of (daily) candles
     # doubled for better accuracy on the `last_trade`
+    # 86400 = segundos por dia (autorange retorna dias)
     window = (bot.autorange() * 86400) * 6
     data.begin = data.end - window
 

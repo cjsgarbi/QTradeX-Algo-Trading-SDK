@@ -49,11 +49,16 @@ def json_ipc(doc="", text=None, initialize=False, append=False):
     tag = ""
     if not act == "appending":
         tag = "<<< JSON IPC >>>"
-    # determine where we are in the file system; change directory to pipe folder
-    path = f"{os.path.dirname(os.path.abspath(__file__))}/pipe"
+    # determine where we are in the file system; change directory to data folder
+    path = f"{os.path.dirname(os.path.abspath(__file__))}/data"
     # ensure we're writing json then add prescript and postscript for clipping
     try:
-        text = tag + json_dumps(json_loads(text)) + tag if text else text
+        if text:
+            # Only add tags if it's not a .json file
+            if doc.endswith(".json"):
+                text = json_dumps(json_loads(text))
+            else:
+                text = tag + json_dumps(json_loads(text)) + tag
     except Exception as error:
         print(text, error.args)
         raise error
@@ -87,7 +92,11 @@ def json_ipc(doc="", text=None, initialize=False, append=False):
                 elif act == "reading":
                     with open(doc, "r") as handle:
                         # only accept legitimate json
-                        data = json_loads(handle.read().split(tag)[1])
+                        content = handle.read()
+                        if tag and tag in content:
+                            data = json_loads(content.split(tag)[1])
+                        else:
+                            data = json_loads(content)
                         handle.close()
                         break
             except Exception:

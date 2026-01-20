@@ -65,10 +65,9 @@ def determine_execution_price(operation, wallet, price, execution, asset, curren
     Returns:
     - Updated execution price and operation.
     """
-    low, high = sorted([price["open"], price["close"]])
-    low = (low + price["low"])/2
-    high = (high + price["high"])/2
-    # low, high = sorted([price["low"], price["high"]])
+    # Usamos o High/Low real para validar se ordens com preço alvo foram atingidas
+    # Isso preserva a compatibilidade com Thresholds e Limit Orders
+    low, high = price["low"], price["high"]
 
     if isinstance(operation, Thresholds):
         if wallet[asset]:
@@ -81,7 +80,7 @@ def determine_execution_price(operation, wallet, price, execution, asset, curren
                 execution = operation.buying
                 operation = Buy(maxvolume=operation.maxvolume)
                 operation.is_override = False
-    elif operation.price is not None:
+    elif isinstance(operation, (Buy, Sell)) and operation.price is not None:
         if wallet[asset] and isinstance(operation, Sell):
             if high > operation.price:
                 execution = operation.price
@@ -322,10 +321,6 @@ def backtest(
         **custom,
     }
 
-    # I don't care how good the results are, if you don't make at least some trades, you don't count
-    if len(raw_states["trades"]) < 10:
-        ret = {k:v - 10000 for k, v in ret.items()}
-
 
     # Plot results if requested
     if plot:
@@ -341,31 +336,131 @@ def backtest(
 
 
 def print_backtest_results(bot, states, data, ret, ticks, candle_size):
+    from qtradex.core.tune_manager import generate_filename
+    from qtradex.common.utilities import read_file, NdarrayDecoder
+    
+    # Tune atual
+    print("\n[TUNER SELECTED FROM JSON]:")
     pprint(bot.tune, indent=4)
-    for op in states["detailed_trades"]:
-        if op["roi"] >= 1:
-            print(
-                f'[{time.ctime(op["unix"])}]',
-                " ",
-                "BUY " if isinstance(op["object"], Buy) else "SELL",
-                " ",
-                it("green", f'{sigfig((op["roi"]-1)*100, 6):.1f}'.ljust(4, "0")
-                + "% GAIN")
-            )
-        else:
-            print(
-                f'[{time.ctime(op["unix"])}]',
-                " ",
-                "BUY " if isinstance(op["object"], Buy) else "SELL",
-                " ",
-                it("red", f'{sigfig((1-op["roi"])*100, 6):.1f}'.ljust(4, "0")
-                + "% LOSS")
-            )
+    
+    # Resultado salvo no JSON
+    try:
+        filename = generate_filename(bot)[0]
+        contents = json.loads(read_file(filename), cls=NdarrayDecoder)
+        best = max((v for k, v in contents.items() if k != "source"), key=lambda x: x["results"]["roi"])
+        print("\n")
+        pprint(best["results"], indent=4)
+    except:
+        pass
+    
+    total_fees = 0.0
+    total_volume = 0.0
+    wins = 0
+    losses = 0
+    
+    print("\n" + "="*60)
+    print(f"  DETAILED BACKTEST RESULTS ({data.exchange.upper()}: {data.asset}/{data.currency})")
+    print("="*60 + "\n")
+
+    # Agrupa trades em pares (BUY -> SELL) para exibição clara
+    # Verificamos o tipo REAL do trade para garantir precisão no papertrading/live
+    detailed = states["detailed_trades"]
+    trade_num = 0
+    entry_trade = None
+    
+    for op in detailed:
+        trade_obj = op.get("object")
+        
+        # Verifica se é um BUY (entrada) ou SELL (saída)
+        is_buy = isinstance(trade_obj, Buy)
+        is_sell = isinstance(trade_obj, Sell)
+        
+        if is_buy and entry_trade is None:
+            # Registra a entrada (BUY)
+            entry_trade = op
+            continue
+        elif is_sell and entry_trade is not None:
+            # Fecha o par (SELL) - calcula resultado
+            trade_num += 1
+            entry_time = time.strftime("%d/%m %H:%M", time.localtime(entry_trade["unix"]))
+            exit_time = time.strftime("%d/%m %H:%M", time.localtime(op["unix"]))
+            
+            # Calcula o resultado do par
+            profit_val = float(op["roi"])
+            
+            if profit_val >= 1:
+                wins += 1
+                pct = (profit_val - 1) * 100
+                status_text = "WIN "
+                status_color = "green"
+            else:
+                losses += 1
+                pct = (1 - profit_val) * 100
+                status_text = "LOSS"
+                status_color = "red"
+            
+            status_label = it(status_color, status_text)
+            value_label = it(status_color, f"{pct:.2f}%")
+            
+            # Formato: [ID] BUY(data) -> SELL(data) | RESULTADO
+            print(f'[{trade_num:03}] {it("green", "BUY")} {entry_time} -> {it("red", "SELL")} {exit_time}  {status_label}  {value_label}')
+            
+            # Reseta para o próximo par
+            entry_trade = None
+        elif is_buy and entry_trade is not None:
+            # BUY duplicado - ignora o anterior e usa o novo
+            entry_trade = op
+        elif is_sell and entry_trade is None:
+            # SELL sem BUY anterior - mostra como trade solo
+            trade_num += 1
+            exit_time = time.strftime("%d/%m %H:%M", time.localtime(op["unix"]))
+            profit_val = float(op["roi"])
+            if profit_val >= 1:
+                wins += 1
+                pct = (profit_val - 1) * 100
+                status_text = "WIN "
+                status_color = "green"
+            else:
+                losses += 1
+                pct = (1 - profit_val) * 100
+                status_text = "LOSS"
+                status_color = "red"
+            status_label = it(status_color, status_text)
+            value_label = it(status_color, f"{pct:.2f}%")
+            print(f'[{trade_num:03}] {it("red", "SELL")} {exit_time}  {status_label}  {value_label}')
+    
+    # Se sobrou um BUY sem par (posição aberta), mostra como pendente
+    if entry_trade is not None:
+        trade_num += 1
+        entry_time = time.strftime("%d/%m %H:%M", time.localtime(entry_trade["unix"]))
+        print(f'[{trade_num:03}] {it("green", "BUY")} {entry_time} -> [ABERTO]  {it("yellow", "PENDENTE")}')
+
+
+
+
+    print("\n")
     print(json.dumps(ret, indent=4))
-    print(
-        f"Days: {data.days:.2f}   Ticks: {ticks}   "
-        f"Days per trade: {(ticks*candle_size) / ((len(states['detailed_trades']) + 1))/86400:.2f}"
-    )
+    print("-" * 60)
+    print("  PERFORMANCE METRICS")
+    print("-"*60)
+    
+    # Extract metrics
+    roi_pct = ret.get('roi', 0) * 100  # ROI já é decimal: 0.33 = 33%
+    cagr_pct = ret.get('cagr', 0) * 100
+    win_rate = ret.get('trade_win_rate', 0) * 100
+    max_dd = ret.get('maximum_drawdown', 0) * 100
+    total_trades = len(states['detailed_trades'])
+    
+    # Display Metrics Table
+    print(f"{'Total Return (ROI)':<25}: {it('green' if roi_pct >= 0 else 'red', f'{roi_pct:>.2f}%')}")
+    print(f"{'CAGR (Annualized)':<25}: {it('green' if cagr_pct >= 0 else 'red', f'{cagr_pct:>.2f}%')}")
+    print(f"{'Max Drawdown':<25}: {it('red', f'{max_dd:>.2f}%')}")
+    print(f"{'Win Rate':<25}: {it('blue', f'{win_rate:>.2f}%')} ({wins} Wins / {losses} Losses)")
+    print(f"{'Total Trades':<25}: {total_trades}")
+    print("-" * 60)
+    
+    avg_days_trade = (ticks*candle_size) / (total_trades + 1) / 86400
+    print(f"Days: {data.days:.2f}   Ticks: {ticks}   Avg Days/Trade: {avg_days_trade:.2f}")
     print(it("yellow", f'{bot.info["mode"].upper()} TRADING AT {data.exchange.upper()}'))
 
 

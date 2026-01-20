@@ -68,18 +68,23 @@ def roi_gross(balances, prices, pair, percent_cheats):
 def cagr(balances, unix_timestamps):
     """
     Calculate the Compound Annual Growth Rate (CAGR).
-
-    Parameters:
-    balances (list): List of balance values over time.
-    unix_timestamps (list): List of corresponding Unix timestamps.
-
-    Returns:
-    float: The CAGR as a decimal.
+    For losses (ROI < 1.0), uses linear calculation to stay proportional.
+    For profits (ROI >= 1.0), uses exponential annualization.
     """
     ending_value = balances[-1]
     beginning_value = balances[0]
     years = (unix_timestamps[-1] - unix_timestamps[0]) / (60 * 60 * 24 * 365)
-    return (ending_value / beginning_value) ** (1 / years) - 1
+    
+    if years <= 0:
+        return 0.0
+    
+    roi = ending_value / beginning_value
+    
+    if roi < 1.0:
+        # Linear: Shows actual loss percentage (proportional to ROI)
+        return roi - 1.0
+    
+    return (roi) ** (1 / years) - 1
 
 
 def sharpe_ratio(roi, wins=[], losses=[], risk_free_rate=1.05):
@@ -101,37 +106,55 @@ def sharpe_ratio(roi, wins=[], losses=[], risk_free_rate=1.05):
 
 def sortino_ratio(roi, losses=[], risk_free_rate=1.05):
     """
-    Calculate the Sortino Ratio.
+    Calculate the Sortino Ratio (Industry Standard).
 
     Parameters:
     roi (float): The average return of the portfolio.
     risk_free_rate (float): The return on a risk-free investment (default is 1.05).
-    losses (list): List of losing trades.
+    losses (list): List of losing trades (as negative returns).
 
     Returns:
     float: The Sortino Ratio.
     """
-    downside_deviation = np.std(functools.reduce(lambda x, y: x * y, losses)) if losses else 1
-
+    # Downside deviation = standard deviation of negative returns only
+    if not losses or len(losses) < 2:
+        downside_deviation = 1.0
+    else:
+        downside_deviation = np.std(losses)
+    
     if downside_deviation == 0:
-        downside_deviation = 1
+        downside_deviation = 1.0
 
     return (roi - risk_free_rate) / downside_deviation
 
 
 def maximum_drawdown(balances):
     """
-    Calculate the Maximum Drawdown (MDD).
-
+    Calculate the Maximum Drawdown (MDD) using rolling peak.
+    
+    Industry Standard (CFA Institute):
+    MDD = (Peak - Trough AFTER Peak) / Peak
+    
     Parameters:
     balances (list): List of balance values over time.
 
     Returns:
-    float: The Maximum Drawdown as a decimal.
+    float: The Maximum Drawdown as a decimal (0.0 to 1.0).
     """
-    peak = max(balances)
-    trough = min(balances)
-    return (peak - trough) / peak
+    if len(balances) < 2:
+        return 0.0
+    
+    peak = balances[0]
+    max_dd = 0.0
+    
+    for balance in balances:
+        if balance > peak:
+            peak = balance
+        dd = (peak - balance) / peak if peak > 0 else 0
+        if dd > max_dd:
+            max_dd = dd
+    
+    return max_dd
 
 
 def calmar_ratio(cagr_value, maximum_drawdown_value):

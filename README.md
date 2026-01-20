@@ -86,8 +86,9 @@ pip install uv
 uv venv
 # Windows
 .venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 # Linux/Mac
-source .venv/bin/activate
+source .venv/bin/activate 
 
 # Install (All dependencies are now pure Python wheels)
 uv pip install -e .
@@ -105,7 +106,15 @@ You can now configure your API keys using a `.env` file instead of typing them e
    ```
 3. **Auto-Save:** If you don't have a `.env` file, the bot will ask you to enter keys and offer to save them automatically for next time!
 
+### Optional Features
+**Binance Testnet (Sandbox):**
+To trade with fake money (risk-free):
+1. Use `exchange="binance_testnet"` in your strategy.
+2. Add `BINANCE_TESTNET_API_KEY` to your `.env` file.
+3. The bot will download **real market data** but send orders to the **Testnet**.
 
+**BitShares Support:**
+Now works natively out-of-the-box on Windows! No extra installation commands needed. The internal `qtradex.bitshares_pure` module handles everything using `coincurve`.
 
 ---
 
@@ -185,3 +194,4 @@ Want to help out?  Check out the [Issues](https://github.com/squidKid-deluxe/QTr
 ---
 
 ✨ Ready to start? Clone the repo, run your first bot, and tune away.  Once tuned - LET THE EXECUTIONS BEGIN!
+# Bot_qtradex_new

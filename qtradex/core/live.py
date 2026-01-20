@@ -51,6 +51,12 @@ def live(
     None
     """
     kwargs.pop("fine_data", None)
+    
+    # Se a estrategia tiver um timeframe definido, usamos ele como tick_size
+    if hasattr(bot, "timeframe"):
+        print(f"Using strategy timeframe: {bot.timeframe}s")
+        tick_size = bot.timeframe
+
     bot.info = Info({"mode": "live"})
     print("\033c")
 
@@ -62,6 +68,7 @@ def live(
     bot.info._set("start", now)
     # we only need `bot.autorange` worth of (daily) candles
     # doubled for better accuracy on the `last_trade`
+    # 86400 = segundos por dia (autorange retorna dias)
     window = (bot.autorange() * 86400) * 6
     data.begin = data.end - window
 

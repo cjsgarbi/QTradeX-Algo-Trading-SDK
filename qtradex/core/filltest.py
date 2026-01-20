@@ -23,6 +23,11 @@ def filltest(bot, data, api_key, api_secret, tick_size=60 * 60 * 2):
     - api_secret: API secret for authentication.
     - tick_size: The size of the tick in seconds (default is 2 hours).
     """
+    # Se a estrategia tiver um timeframe definido, usamos ele como tick_size
+    if hasattr(bot, "timeframe"):
+        print(f"Using strategy timeframe: {bot.timeframe}s")
+        tick_size = bot.timeframe
+
     bot.info = Info({"mode": "fill test"})
     print("\033c")  # Clear the console
     asset, currency, candle_size = data.asset, data.currency, data.candle_size
@@ -47,6 +52,7 @@ def filltest(bot, data, api_key, api_secret, tick_size=60 * 60 * 2):
     ]
 
     # Adjust the beginning of the data range
+    # 86400 = segundos por dia (converte autorange de dias para segundos)
     data.begin = (
         max(data.begin, min([trade["unix"] for trade in fills]))
         - (bot.autorange()-1) * 86400

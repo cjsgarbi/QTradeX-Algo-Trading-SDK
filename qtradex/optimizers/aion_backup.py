@@ -43,7 +43,7 @@ class OptState:
     __slots__ = ('iteration', 'improvements', 'stagnation', 'skips', 'evaluated',
                  'cache', 'gradients', 'elite', 'param_hist', 'synapses', 
                  'neuron_impacts', 'recent_impr', 'temperature', 'consecutive_skips',
-                 'skip_history', 'last_skip_reason', 'best_trophy')
+                 'skip_history', 'last_skip_reason')
     
     def __init__(self, initial_temp=1.0):
         self.iteration = 0
@@ -62,7 +62,6 @@ class OptState:
         self.temperature = initial_temp
         self.skip_history = []      # History of skipped tunes for learning
         self.last_skip_reason = ''  # Debug: reason for last skip
-        self.best_trophy = None     # Best result with MDD < 25% (The Trophy)
     
     @property
     def phase(self):
@@ -107,8 +106,7 @@ class AIONoptions:
                  'plot_period', 'quantum_tunneling_prob', 'min_temperature', 
                  'max_temperature', 'synapses', 'neurons', 'fitness_ratios',
                  'enable_cache', 'elite_preservation', 'smart_skip_threshold',
-                 'bad_region_memory', 'pareto_mdd_threshold', 'hard_mdd_limit',
-                 'quantum_pulse_intensity', 'memory_decay_rate')
+                 'bad_region_memory')
     
     def __init__(self):
         self.epochs = math.inf
@@ -127,10 +125,6 @@ class AIONoptions:
         self.elite_preservation = 3
         self.smart_skip_threshold = 10
         self.bad_region_memory = 50
-        self.pareto_mdd_threshold = 0.20  # Início da penalidade (20%)
-        self.hard_mdd_limit = 0.25       # Limite de ferro (25%)
-        self.quantum_pulse_intensity = 1.5
-        self.memory_decay_rate = 0.9     # Taxa de sobrevivência da memória
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -139,19 +133,11 @@ class AIONoptions:
 
 def printouts(ctx):
     """Compact display of optimization status."""
-    def fmt(v):
-        """Safe decimal formatter to avoid scientific notation in table."""
-        try:
-            val = float(v.item()) if hasattr(v, 'item') else float(v)
-            if 0 < abs(val) < 0.0001: return f"{val:.4f}"
-            return val
-        except: return v
-
     table = [[""] + ctx["params"] + [""] + ctx["coords"] + [""]]
-    table.append(["current"] + [fmt(v) for v in ctx["bot"].tune.values()] + [""] + [fmt(v) for v in ctx["score"].values()] + [""])
+    table.append(["current"] + list(ctx["bot"].tune.values()) + [""] + list(ctx["score"].values()) + [""])
     
     for c, (s, b) in ctx["best"].items():
-        table.append([c] + [fmt(v) for v in b.tune.values()] + [""] + [fmt(v) for v in s.values()] + ["###"])
+        table.append([c] + list(b.tune.values()) + [""] + list(s.values()) + ["###"])
     
     n = len(ctx["coords"])
     eye = np.eye(n).astype(int)
@@ -176,20 +162,6 @@ def printouts(ctx):
     msg += it("white", f"• Speed: {speed:.1f}/s  Cache: {len(st.cache)}  Skip: {st.skip_rate*100:.0f}%\n")
     msg += it("white", f"• Phase: {phase_map[st.phase]}  {temp_bar}  Stagnation: {st.stagnation}\n")
     msg += it("white", "═" * 60 + "\n")
-    
-    if st.best_trophy:
-        score_t = st.best_trophy['score']
-        # Safe float conversion
-        def sf(v):
-            try: return float(v.item()) if hasattr(v, 'item') else float(v)
-            except: return 0.0
-        
-        # User Preference: ROI as direct percentage of capital (0.9317 = 93.17%)
-        roi_t = sf(score_t.get('roi', 1.0)) * 100
-        mdd_t = sf(score_t.get('maximum_drawdown', 0.1)) * 100
-        wr_t = sf(score_t.get('trade_win_rate', 0.0)) * 100
-        msg += it("green", f"🏆 BEST ROI MEMORY (MDD < 25%): ROI={roi_t:.2f}%  MDD={mdd_t:.2f}%  WR={wr_t:.2f}%\n")
-    
     msg += it("yellow", "Ctrl+C to stop\n")
     print(msg)
 
@@ -245,18 +217,15 @@ class AION:
         neurons = self.options.neurons or [p for p in params if bot.clamps[p][3]]
         
         # Favor impactful neurons (from state)
+        if st.neuron_impacts and random() < 0.5:
+            impactful = sorted(st.neuron_impacts, key=st.neuron_impacts.get, reverse=True)
+            neurons = [n for n in impactful if n in neurons][:max(1, len(neurons)//2)] or neurons
+        
+        for _ in range(3):
+            neurons = sample(neurons, k=randint(1, len(neurons)))
+        
         if st.synapses and len(st.synapses) > 2 and randint(0, 2):
             neurons = list(choice(st.synapses))
-            
-        # HEAT-MAP SELECTION (Intelligence Boost)
-        # 60% chance to focus on impactful neurons, 40% chance for randomness to avoid stagnation
-        if st.neuron_impacts and random() < 0.6:
-             impactful = sorted(st.neuron_impacts, key=st.neuron_impacts.get, reverse=True)
-             candidates = [n for n in impactful if n in (self.options.neurons or params)]
-             if candidates:
-                 neurons = candidates[:max(1, len(candidates)//2)]
-        else:
-             neurons = sample(params, k=randint(1, len(params)))
         
         old_tune = bot.tune.copy()
         
@@ -268,30 +237,15 @@ class AION:
         boost = 1.5 + st.stagnation * 0.01 if st.phase == 'exploration' else 1.0
         boost = min(3.0, boost)
         
-        # Mutate loop
-        success = False
-        for _ in range(5):
-            temp_tune = bot.tune.copy()
-            for n in neurons:
-                if not bot.clamps[n][3]: continue
-                is_int = isinstance(bot.tune[n], (int, np.integer))
-                step = self._levy_step(bot.clamps[n][0], bot.clamps[n][2], boost, n, bot.tune[n])
-                if is_int: step = int(step) or (1 if random() > 0.5 else -1)
-                temp_tune[n] += step
-            
-            best_roi = self._scalar(self.state.elite[0][0]) if self.state.elite else 0.01
-            if not self._should_skip(temp_tune, best_roi, bot.clamps):
-                bot.tune = temp_tune
-                success = True
-                break
-            boost *= 1.5 # Quantum Aggression: increase boost to escape bad region
-            
-        # Emergency Escape: If still failing, force a huge leap
-        if not success:
-            for n in neurons:
-                if not bot.clamps[n][3]: continue
-                rng = bot.clamps[n][2] - bot.clamps[n][0]
-                bot.tune[n] += (random() - 0.5) * rng * 0.5
+        # Mutate
+        for n in neurons:
+            if not bot.clamps[n][3]:
+                continue
+            is_int = isinstance(bot.tune[n], (int, np.integer))
+            step = self._levy_step(bot.clamps[n][0], bot.clamps[n][2], boost, n, bot.tune[n])
+            if is_int:
+                step = int(step) or (1 if random() > 0.5 else -1)
+            bot.tune[n] += step
         
         return bound_neurons(bot), old_tune, neurons
     
@@ -374,13 +328,9 @@ class AION:
         # Too many consecutive skips: reset and do not skip
         if st.consecutive_skips > 50:
             st.consecutive_skips = 0
-            # SOFT DECAY: Instead of resetting to {}, we decay the impact of old memory
-            if isinstance(st.param_hist, dict):
-                for p in st.param_hist:
-                    if len(st.param_hist[p]) > 5:
-                        st.param_hist[p] = st.param_hist[p][int(len(st.param_hist[p]) * 0.5):]
-            st.temperature = min(3.0, st.temperature * self.options.quantum_pulse_intensity)
-            st.last_skip_reason = 'soft_memory_decay'
+            st.param_hist = {}  # Reset problematic history
+            st.temperature = min(3.0, st.temperature * 1.5)
+            st.last_skip_reason = 'consecutive_reset'
             return False
         
         # ═══ BAD REGION ANALYSIS (using param_hist from LEARNER) ═══
@@ -446,27 +396,14 @@ class AION:
         st = self.state
         opts = self.options
         
-        # ═══ ALWAYS UPDATE HISTORY (using Balanced Score for Smart Skip) ═══
+        # ═══ ALWAYS UPDATE HISTORY (even if not improved) ═══
         for param, value in new_tune.items():
             hist = st.param_hist.setdefault(param, [])
             try:
-                hist.append((float(value), roi)) # Note: Using passed roi/balanced score
+                hist.append((float(value), roi))
             except (ValueError, TypeError):
                 hist.append((value, roi))
-            
-            # Synaptic Interaction Memory: Learn which pairs are bad
-            if len(new_tune) > 1:
-                for other_p, other_v in new_tune.items():
-                    if other_p == param: continue
-                    pair_key = tuple(sorted([param, other_p]))
-                    pair_hist = st.param_hist.setdefault(pair_key, [])
-                    try:
-                        pair_hist.append(((float(value), float(other_v)), roi))
-                    except:
-                        pass
-                    if len(pair_hist) > opts.bad_region_memory:
-                        st.param_hist[pair_key] = pair_hist[-opts.bad_region_memory:]
-
+            # Keep only last N records
             if len(hist) > opts.bad_region_memory:
                 st.param_hist[param] = hist[-opts.bad_region_memory:]
         
@@ -572,11 +509,6 @@ class AION:
         # Feed LEARNER with initial result
         self._learn(bot.tune, bot.tune, self._scalar(initial.get('roi', 0)), False, list(params))
         
-        # 🏆 Initialize Trophy with initial result if it qualifies
-        init_mdd = self._scalar(initial.get('maximum_drawdown', 0.5))
-        if init_mdd <= 0.25:
-            self.state.best_trophy = {'score': deepcopy(initial), 'bot': deepcopy(bot)}
-        
         if opts.fitness_ratios is None:
             opts.fitness_ratios = {c: 0 for c in coords}
             opts.fitness_ratios['roi'] = 1
@@ -604,12 +536,8 @@ class AION:
                     plot_scores(historical, [], st.iteration)
                 
                 # ═══ MUTATOR AGENT ═══
-                # Seed from Trophy (20% chance) to overcome records
-                if st.best_trophy and random() < 0.20:
-                    bot = deepcopy(st.best_trophy['bot'])
-                else:
-                    bot = deepcopy(best.get('roi', list(best.values())[0])[1])
-                
+                # Uses state: elite, gradients, neuron_impacts, phase, temperature
+                bot = deepcopy(best.get('roi', list(best.values())[0])[1])
                 bot, old_tune, neurons = self._mutate(bot, params)
                 
                 # ═══ FILTER AGENT (Smart Skip) ═══
@@ -619,10 +547,13 @@ class AION:
                     # Skip recorded inside _should_skip via st.record_skip()
                     # Temperature already adjusted automatically
                     
-                    # Micro-Reheat Pulse: If stuck, jump further
-                    if st.consecutive_skips > 20:
-                        boost *= self.options.quantum_pulse_intensity
-                        
+                    # Emergency reset if too many consecutive skips
+                    if st.consecutive_skips > 100:
+                        st.consecutive_skips = 0
+                        st.param_hist = {}  # Reset problematic data
+                        st.skip_history = []
+                        st.temperature = min(opts.max_temperature, st.temperature * 1.5)
+                        print(it("yellow", f"⚠️ Reset: {st.evaluated} backtests, skip_rate={st.skip_rate:.0%}"))
                     continue
                 
                 # ═══ EVALUATOR AGENT ═══
@@ -634,87 +565,24 @@ class AION:
                     if opts.enable_cache:
                         st.cache[h] = score
                 
-                # Check for improvement using Balanced Score (ROI vs Risk vs WinRate)
+                # Check for improvement
                 improved, boom = False, []
-                new_roi = self._scalar(score.get('roi', 1.0))
-                new_mdd = self._scalar(score.get('maximum_drawdown', 0.01))
-                new_wr = self._scalar(score.get('trade_win_rate', 0.0))
+                new_roi = self._scalar(score.get('roi', 0))
                 
-                # ════════════════════════════════════════════════════════════════
-                # 🛡️ BALANCED SCORE COM BARREIRA DUPLA (SUAVE + FERRO)
-                # ════════════════════════════════════════════════════════════════
-                
-                # HARD LIMIT: Immediate rejection if MDD > Limit
-                if new_mdd > opts.hard_mdd_limit:
-                    new_balanced = -1.0
-                    mdd_penalty = 0.0
-                else:
-                    # Sigmoidal MDD Penalty (Safe Barrier at pareto_mdd_threshold)
-                    # 1.0 until threshold, then drops exponentially
-                    mdd_penalty = 1.0 / (1.0 + math.exp(20.0 * (new_mdd - opts.pareto_mdd_threshold)))
-                    
-                    # WinRate Penalty (Threshold at 45%)
-                    wr_penalty = 1.0
-                    if new_wr < 0.45:
-                        wr_penalty = 1.0 / (1.0 + math.exp(20.0 * (0.45 - new_wr)))
-                    
-                    # Balanced Score: ROI weighted by Risk/WR penalties
-                    new_balanced = ((new_roi - 1.0) * (new_wr + 0.01) * mdd_penalty * wr_penalty)
-                
-                best_roi_val = self._scalar(best['roi'][0].get('roi', 1.0))
-                best_mdd_val = self._scalar(best['roi'][0].get('maximum_drawdown', 0.1))
-                best_wr_val = self._scalar(best['roi'][0].get('trade_win_rate', 0.0))
-                
-                # Same formula for the current best
-                best_mdd_penalty = 1.0 / (1.0 + math.exp(20.0 * (best_mdd_val - opts.pareto_mdd_threshold)))
-                best_wr_penalty = 1.0 / (1.0 + math.exp(20.0 * (0.45 - best_wr_val))) if best_wr_val < 0.45 else 1.0
-                best_balanced = ((best_roi_val - 1.0) * (best_wr_val + 0.01) * best_mdd_penalty * best_wr_penalty)
-                
-                # 🔒 ELITE PROTECTION: ROI can NEVER decrease unless MDD improved significantly
-                roi_improved = new_roi > best_roi_val
-                mdd_improved = new_mdd < (best_mdd_val * 0.90) # 10% relative improvement in risk
-                balanced_improved = new_balanced > best_balanced
-                
-                # ROI coord: Updated when balanced improves OR (ROI improves and risk is within Pareto limit)
-                # Pareto Safety: Don't accept ROI gains if MDD > 25% OR MDD increased by >50% relative
-                risk_explosion = new_mdd > 0.25 or (new_mdd > best_mdd_val * 1.5 and new_mdd > 0.10)
-                
-                if balanced_improved or (roi_improved and not risk_explosion) or (mdd_improved and new_roi >= best_roi_val * 0.95):
-                    best['roi'] = (score, deepcopy(bot))
-                    boom.append('roi')
+                if new_roi > best_roi:
+                    for c in coords:
+                        best[c] = (score, deepcopy(bot))
+                        boom.append(c)
                     improved = True
-                
-                # 🏆 BEST ROI MEMORY (The Trophy - Glass Zone 0-25% MDD)
-                # Snapshot of the absolute best 'roi' achievement
-                if new_mdd <= 0.25:
-                    if st.best_trophy is None:
-                        st.best_trophy = {'score': deepcopy(score), 'bot': deepcopy(bot)}
-                    else:
-                        trophy_roi = self._scalar(st.best_trophy['score'].get('roi', 0))
-                        trophy_mdd = self._scalar(st.best_trophy['score'].get('maximum_drawdown', 1.0))
-                        
-                        # Case 1: Better ROI (Primary goal)
-                        if new_roi > (trophy_roi + 1e-6):
-                            st.best_trophy = {'score': deepcopy(score), 'bot': deepcopy(bot)}
-                        
-                        # Case 2: Lower MDD (Better risk)
-                        # If MDD is significantly better and ROI is not ruined, we update
-                        elif new_mdd < (trophy_mdd - 0.001) and new_roi >= (trophy_roi - 0.001):
-                            st.best_trophy = {'score': deepcopy(score), 'bot': deepcopy(bot)}
-
-                # Other coords: Updated individually (preserve diversity)
-
-                # Other coords: Updated individually (preserve diversity)
-                for c, (s, _) in list(best.items()):
-                    if c == 'roi':
-                        continue  # Already handled above
-                    try:
-                        if self._scalar(score.get(c, 0)) > self._scalar(s.get(c, 0)):
-                            best[c] = (score, deepcopy(bot))
-                            boom.append(c)
-                            improved = True
-                    except:
-                        continue
+                else:
+                    for c, (s, _) in list(best.items()):
+                        try:
+                            if self._scalar(score.get(c, 0)) > self._scalar(s.get(c, 0)):
+                                best[c] = (score, deepcopy(bot))
+                                boom.append(c)
+                                improved = True
+                        except:
+                            continue
                 
                 # ═══ LEARNER AGENT ═══
                 # Updates: param_hist, gradients, elite, synapses, neuron_impacts, temperature
@@ -738,32 +606,9 @@ class AION:
                 if st.stagnation > 500 and st.skip_rate > 0.8:
                     print(it("cyan", f"\n🏁 CONVERGED! Backtests:{st.evaluated} ROI:{self._scalar(best['roi'][0]['roi']):.4f}"))
                     break
-                
-                # Dynamic Reheat (Quantum Pulse) during exploitation if stagnant
-                if st.stagnation > 20 and st.phase == 'exploitation':
-                    st.temperature = min(opts.max_temperature, st.temperature * 1.1)
         
         except KeyboardInterrupt:
             print(it("yellow", f"\n⏹️ INTERRUPTED! Backtests:{st.evaluated} ROI:{self._scalar(best['roi'][0]['roi']):.4f}"))
         
-        # 🏆 FINAL TROPHY CHECK: Use the Trophy as the ultimate winner for Export
-        if st.best_trophy:
-            t_score = st.best_trophy['score']
-            t_roi = self._scalar(t_score.get('roi', 0))
-            
-            # Identify coordinates that should be replaced (roi, cagr)
-            roi_coords = [c for c in best.keys() if any(k in c.lower() for k in ['roi', 'cagr'])]
-            
-            replaced = False
-            for coord in roi_coords:
-                current_val = self._scalar(best[coord][0].get('roi', 0))
-                if t_roi > (current_val + 1e-6):
-                    best[coord] = (deepcopy(t_score), deepcopy(st.best_trophy['bot']))
-                    replaced = True
-            
-            if replaced:
-                final_roi_pct = t_roi * 100
-                print(it("green", f"🏆 Replacing Output with BEST ROI MEMORY (Trophy ROI: {final_roi_pct:.2f}%)"))
-
-        end_optimization(best, opts.print_tune, asset=self.data.asset, currency=self.data.currency)
+        end_optimization(best, opts.print_tune)
         return best

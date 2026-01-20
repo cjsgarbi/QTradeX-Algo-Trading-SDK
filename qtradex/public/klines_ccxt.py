@@ -167,7 +167,7 @@ def candles(api, start, interval, limit):
                     [unformat_timeframe(i) for i in exchange.timeframes.keys()],
                 )
             page = exchange.fetch_ohlcv(
-                symbol=api["pair"], timeframe=timeframe, since=start * 1000, limit=limit
+                symbol=api["pair"], timeframe=timeframe, since=int(start) * 1000, limit=limit
             )
             return [
                 {
@@ -181,8 +181,9 @@ def candles(api, start, interval, limit):
             ccxt.ExchangeNotAvailable,
             ccxt.ExchangeError,
             ccxt.InvalidNonce,
-        ):
-            print("Encountered rate limit!  Pausing for 10 seconds...")
+        ) as error:
+            print(f"Erro CCXT: {type(error).__name__}: {error}")
+            print("Pausing for 10 seconds...")
             time.sleep(10)
             continue
 

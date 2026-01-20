@@ -79,14 +79,26 @@ def preprocess_states(states, pair):
     new_states["detailed_wins"] = []
     new_states["detailed_losses"] = []
 
-    for trade in states["trades"][1:]:
-        data_dict = {"roi": trade.profit, "unix": trade.unix, "price": trade.price, "object":trade}
-        if trade.profit >= 1:
+    # O primeiro ROI de referência é sempre 1.0 (saldo inicial)
+    prev_profit = 1.0
+    
+    for trade in states["trades"]:
+        if trade is None:
+            continue
+            
+        # Para saber se o trade FOI um ganho, comparamos com o saldo anterior
+        # e não com o saldo inicial da conta (que destruía o Win Rate em drawdown)
+        if trade.profit >= prev_profit:
             key = "wins"
         else:
             key = "losses"
+            
+        data_dict = {"roi": trade.profit, "unix": trade.unix, "price": trade.price, "object": trade}
         new_states[f"{key}"].append(trade.profit)
         new_states[f"detailed_{key}"].append(data_dict)
+        
+        # Atualiza a referência para o próximo trade
+        prev_profit = trade.profit
 
     new_states["balance_states"] = [
         i.value(pair, close) for i, close in zip(states["balances"], states["close"])

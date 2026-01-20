@@ -63,6 +63,11 @@ def plot_gravitas(bot, data, wallet, **kwargs):
 def dispatch(bot, data, wallet=None, **kwargs):
     if wallet is None:
         wallet = PaperWallet({data.asset: 0, data.currency: 1})
+    
+    # Passa asset/currency para o bot ANTES de load_tune
+    bot.asset = data.asset
+    bot.currency = data.currency
+
     logo(animate=True)
 
     bot.tune = load_tune(bot)
@@ -110,39 +115,12 @@ def dispatch(bot, data, wallet=None, **kwargs):
     elif choice == 2:
         qx.core.papertrade(bot, data, wallet, **kwargs)
     elif choice in [3, 4]:
-        # Strict Exchange Naming & Auto-Save Logic
-        env_prefix = data.exchange.upper()
-        
-        # Determine variable names
         if data.exchange == "bitshares":
-            key_var = "BITSHARES_API_KEY"
-            secret_var = "BITSHARES_API_SECRET"
-            prompt_key = "Enter username: "
-            prompt_secret = "Enter WIF:      "
+            api_key = input("Enter username: ")
+            api_secret = getpass("Enter WIF:      ")
         else:
-            key_var = f"{env_prefix}_API_KEY"
-            secret_var = f"{env_prefix}_API_SECRET"
-            prompt_key = f"Enter {data.exchange} API key:    "
-            prompt_secret = f"Enter {data.exchange} API secret: "
-
-        # Try loading from env
-        api_key = os.getenv(key_var)
-        api_secret = os.getenv(secret_var)
-        
-        # If missing, ask user and offer to save
-        if not api_key or not api_secret:
-            if not api_key:
-                api_key = input(prompt_key)
-            if not api_secret:
-                api_secret = getpass(prompt_secret)
-            
-            # Auto-Save Prompt
-            save = input(f"Save these keys to .env as {key_var}/{secret_var}? (y/n): ").lower()
-            if save == 'y':
-                with open(".env", "a") as f:
-                    f.write(f"\n{key_var}={api_key}\n")
-                    f.write(f"{secret_var}={api_secret}\n")
-                print(f"Keys saved to .env!")
+            api_key = getpass("Enter API key:    ")
+            api_secret = getpass("Enter API secret: ")
 
         if choice == 3:
             dust = input("Don't trade under this amount of assets (enter for 1e-8): ")
@@ -160,3 +138,5 @@ def dispatch(bot, data, wallet=None, **kwargs):
             qx.core.filltest(bot, data, api_key, api_secret)
     elif choice == 5:
         qx.core.auto_backtest(bot, data, wallet, **kwargs)
+        
+        

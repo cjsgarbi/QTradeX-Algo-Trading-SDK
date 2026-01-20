@@ -1,20 +1,33 @@
-# install/build directories
+# Security (CRITICAL)
+.env
+
+# Virtual Environments
+.venv/
+venv/
+env/
+
+# Python Cache
+__pycache__/
+*.pyc
+
+# QTradeX Data Cache (Generated at runtime)
+data_index.json
+min_time.json
+* candles.json
+qtradex/common/pipe/
+
+# Distribution / Build
 dist/
 build/
-QTradeX.egg-info/
+*.egg-info/
+
+# Compiled files (Legacy)
 qtradex/indicators/utilities.c*
 qtradex/indicators/qi.c*
 
-# candle cache
-qtradex/common/pipe/
+# IDE settings
+.vscode/
+.idea/
 
-
-# pycaches
-qtradex/__pycache__/
-qtradex/common/__pycache__/
-qtradex/core/__pycache__/
-qtradex/indicators/__pycache__/
-qtradex/optimizers/__pycache__/
-qtradex/plot/__pycache__/
-qtradex/private/__pycache__/
-qtradex/public/__pycache__/
+# Strategies (Ignore cache inside)
+strategies/__pycache__/

@@ -1,0 +1,87 @@
+{
+ "source": "\"\"\"\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551   INSTITUTIONAL MARKET STRUCTURE - DOW THEORY TREND FOLLOWER             \u2551\n\u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2563\n\u2551                                                                           \u2551\n\u2551 \ud83c\udfdb\ufe0f ESTRAT\u00c9GIA INSTITUCIONAL (Hedge Funds / Prop Firms)                   \u2551\n\u2551                                                                           \u2551\n\u2551 \u2705 PRICE ACTION PURO: Sem indicadores atrasados (RSI, MACD, etc)         \u2551\n\u2551 \u2705 MARKET STRUCTURE: Opera rompimentos de Topos e Fundos (Dow Theory)    \u2551\n\u2551 \u2705 GEST\u00c3O DE RISCO: Stop Loss din\u00e2mico baseado na estrutura do mercado   \u2551\n\u2551 \u2705 100% DETERMIN\u00cdSTICO: Backtest exato ao Live (Zero Lookahead)          \u2551\n\u2551                                                                           \u2551\n\u2551 L\u00d3GICA OPERACIONAL:                                                      \u2551\n\u2551 1. Identifica Topos e Fundos confirmados (ZigZag Institucional)          \u2551\n\u2551 2. COMPRA: Rompimento (Fechamento) acima do \u00faltimo Topo Confirmado       \u2551\n\u2551 3. VENDA: Rompimento (Fechamento) abaixo do \u00faltimo Fundo Confirmado      \u2551\n\u2551 4. STOP LOSS: \u00daltimo Fundo (para Compra) ou \u00daltimo Topo (para Venda)     \u2551\n\u2551                                                                           \u2551\n\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\n\"\"\"\n\nimport qtradex as qx\nimport numpy as np\n\nclass ZigZagFractal(qx.BaseBot):\n    \"\"\"\n    Institutional Market Structure - Estrat\u00e9gia de Rompimento de Estrutura\n    \"\"\"\n    \n    \n    def __init__(self):\n        # ===================================================================\n        # TIMEFRAME: Configura o timeframe preferido para os agentes lerem\n        # ===================================================================\n        self.timeframe = TIMEFRAME\n        self.fee = FEE\n        \n        # Par\u00e2metros de Otimiza\u00e7\u00e3o (Scalping Institucional)\n        self.tune = {\n            \"lookback\": 2,           # Alta sensibilidade (Scalping)\n            \"breakout_buffer\": 0.0005, # 0.05% (Buffer curto para mais trades)\n            \"atr_period\": 14,        # Volatilidade\n            \"stop_atr_mult\": 2.0,    # Stop Loss (2x ATR)\n            \"ema_period\": 200,       # Filtro de Tend\u00eancia\n        }\n        \n        self.clamps = {\n            \"lookback\": [1, 2, 5, 1],\n            \"breakout_buffer\": [0.0, 0.0005, 0.002, 0.0001],\n            \"atr_period\": [10, 14, 21, 1],\n            \"stop_atr_mult\": [1.0, 2.0, 4.0, 0.1],\n            \"ema_period\": [50, 200, 300, 10],\n        }\n    \n    def indicators(self, candles):\n        highs = np.array(candles['high'])\n        lows = np.array(candles['low'])\n        closes = np.array(candles['close'])\n        n = len(highs)\n        \n        # INDICADORES AUXILIARES\n        # Robust EMA calculation (bypassing library wrapper issues)\n        import pandas as pd\n        ema_period = int(self.tune[\"ema_period\"])\n        ema = pd.Series(closes).ewm(span=ema_period, adjust=False).mean().to_numpy()\n        \n        atr = qx.ti.atr(candles['high'], candles['low'], candles['close'], int(self.tune[\"atr_period\"]))\n        \n        lookback = int(self.tune[\"lookback\"])\n        buffer = float(self.tune[\"breakout_buffer\"])\n        \n        # Arrays de Estrutura de Mercado\n        structure_high = np.full(n, np.nan) # \u00daltimo Topo Confirmado\n        structure_low = np.full(n, np.nan)  # \u00daltimo Fundo Confirmado\n        signal = np.full(n, None, dtype=object)\n        \n        # Vari\u00e1veis de estado\n        last_confirmed_high = highs[0]\n        last_confirmed_low = lows[0]\n        \n        # Janela de Fractal (Williams / ZigZag)\n        fractal_mid = lookback\n        \n        # Loop principal (simula o processamento candle a candle)\n        for i in range(fractal_mid * 2, n):\n            # 1. DETECTAR FRACTAIS (Confirmados no passado)\n            # O fractal acontece em 'pivot_idx', mas s\u00f3 \u00e9 confirmado AGORA (i)\n            pivot_idx = i - fractal_mid\n            \n            # Verificar se 'pivot_idx' \u00e9 um Topo\n            is_high = True\n            for k in range(pivot_idx - fractal_mid, pivot_idx + fractal_mid + 1):\n                if highs[k] > highs[pivot_idx]:\n                    is_high = False\n                    break\n            \n            # Verificar se 'pivot_idx' \u00e9 um Fundo\n            is_low = True\n            for k in range(pivot_idx - fractal_mid, pivot_idx + fractal_mid + 1):\n                if lows[k] < lows[pivot_idx]:\n                    is_low = False\n                    break\n            \n            # Atualizar Estrutura se confirmou\n            if is_high:\n                last_confirmed_high = highs[pivot_idx]\n            if is_low:\n                last_confirmed_low = lows[pivot_idx]\n            \n            # Salvar estado atual da estrutura (para plot e debug)\n            structure_high[i] = last_confirmed_high\n            structure_low[i] = last_confirmed_low\n            \n            # 2. GERAR SINAIS DE ROMPIMENTO (BREAKOUT)\n            # L\u00f3gica Dow Theory: Pre\u00e7o rompe a estrutura anterior\n            \n            current_close = closes[i]\n            \n            # COMPRA: Fechamento > \u00daltimo Topo Confirmado (+ buffer)\n            if current_close > (last_confirmed_high * (1 + buffer)):\n                signal[i] = 'buy'\n                \n            # VENDA: Fechamento < \u00daltimo Fundo Confirmado (- buffer)\n            elif current_close < (last_confirmed_low * (1 - buffer)):\n                signal[i] = 'sell'\n                \n        return {\n            'structure_high': structure_high,\n            'structure_low': structure_low,\n            'signal': signal,\n            'close': closes,\n            'atr': atr,\n            'ema': ema,\n            'high': highs, # Para plot\n            'low': lows    # Para plot\n        }\n    \n    def strategy(self, tick_info, indicators):\n        signal = indicators.get('signal')\n        last_trade = tick_info.get('last_trade')\n        close = tick_info.get('close')\n        \n        # 1. STOP LOSS PROTECTION (ATR)\n        if isinstance(last_trade, qx.Buy):\n            entry_price = last_trade.price\n            current_atr = indicators.get('atr', 0)\n            if current_atr > 0:\n                stop_mult = self.tune.get('stop_atr_mult', 2.0)\n                stop_price = entry_price - (current_atr * stop_mult)\n                if close < stop_price:\n                    return qx.Sell() # Stop Trigger\n        \n        # 2. TREND FILTER (EMA)\n        current_ema = indicators.get('ema', 0)\n        \n        # Execu\u00e7\u00e3o Simples de Tend\u00eancia\n        if signal == 'buy':\n            # S\u00f3 compra se Pre\u00e7o > EMA (Tend\u00eancia de Alta)\n            if close < current_ema:\n                return qx.Hold()\n                \n            if last_trade is None or isinstance(last_trade, qx.Sell):\n                return qx.Buy()\n                \n        elif signal == 'sell':\n            if isinstance(last_trade, qx.Buy):\n                return qx.Sell()\n                \n        return qx.Hold()\n    \n    def plot(self, data, states, indicators, block):\n        qx.plot(\n            self.info,\n            data,\n            states,\n            indicators,\n            block,\n            (\n                (\"structure_high\", \"Resist\u00eancia (Topo)\", \"red\", 0, None),\n                (\"structure_low\", \"Suporte (Fundo)\", \"lime\", 0, None),\n                (\"ema\", \"Filtro Tend\u00eancia (EMA)\", \"yellow\", 0, None),\n                (\"atr\", \"ATR\", \"orange\", 1, \"Volatilidade\"),\n            ),\n        )\n        qx.plotmotion(block)\n        \n    def execution(self, signal, indicators=None, wallet=None):\n        return signal\n\n    def fitness(self, states, raw_states, asset, currency):\n        \"\"\"M\u00e9tricas de performance para otimiza\u00e7\u00e3o\"\"\"\n        return [\n            \"roi_assets\",\n            \"roi_currency\",\n            \"roi\",\n            \"cagr\",\n            \"sortino\", \n            \"maximum_drawdown\",\n            \"trade_win_rate\",\n        ], {}\n\n# ===========================================================================\n# CONFIGURA\u00c7\u00c3O GLOBAL\n# ===========================================================================\n# 60=1m, 300=5m, 900=15m, 3600=1h, 14400=4h, 86400=1d\nTIMEFRAME = 900  # 15 minutos (900 segundos)\nFEE = 0.1  # 0.1%\n\n\n# ===========================================================================\n# MAIN\n# ===========================================================================\ndef main():\n    \"\"\"Configura e executa a estrat\u00e9gia.\"\"\"\n    import time\n    asset, currency = \"SOL\", \"USDT\"\n    wallet = qx.PaperWallet({asset: 0, currency: 10000}, fee=FEE)\n    \n    data = qx.Data(\n        exchange=\"binance\",\n        asset=asset,\n        currency=currency,\n        begin=\"2025-10-01\",\n        #end=\"2026-01-14\",  # Data fixa (opcional)\n        end=int(time.time()),  # Dados at\u00e9 o segundo atual\n        candle_size=TIMEFRAME, \n    )\n    \n    # python strategies/ZigZagFractal.py\n    # Algoritmo validado por traders profissionais\n    bot = ZigZagFractal()\n    qx.dispatch(bot, data, wallet)\n\n\nif __name__ == \"__main__\":\n    main()",
+ "BEST ROI TUNE_Sat Jan 17 18:03:15 2026_SOL_USDT_3600_Sat Jan 17 18:03:15 2026": {
+  "identifier": "BEST ROI TUNE_Sat Jan 17 18:03:15 2026_SOL_USDT_3600_Sat Jan 17 18:03:15 2026",
+  "asset": "SOL",
+  "currency": "USDT",
+  "timeframe": 3600,
+  "tune": {
+   "lookback": 2,
+   "breakout_buffer": 0.0005,
+   "atr_period": 14,
+   "stop_atr_mult": 2.0,
+   "ema_period": 200
+  },
+  "results": {
+   "roi_assets": 0.906458896630172,
+   "roi_currency": 0.9766497142434278,
+   "roi": 0.9115397332938661,
+   "cagr": -0.05909999342795713,
+   "maximum_drawdown": 0.24623435104920163,
+   "trade_win_rate": 0.47333333333333333
+  }
+ },
+ "BEST ROI TUNE_Sat Jan 17 18:10:50 2026_SOL_USDT_900_Sat Jan 17 18:10:50 2026": {
+  "identifier": "BEST ROI TUNE_Sat Jan 17 18:10:50 2026_SOL_USDT_900_Sat Jan 17 18:10:50 2026",
+  "asset": "SOL",
+  "currency": "USDT",
+  "timeframe": 900,
+  "tune": {
+   "lookback": 4,
+   "breakout_buffer": 0.0005974945116533953,
+   "atr_period": 14,
+   "stop_atr_mult": 2.527647223784455,
+   "ema_period": 247
+  },
+  "results": {
+   "roi_assets": 0.82841795410342,
+   "roi_currency": 1.342893970584447,
+   "roi": 1.2682887499964224,
+   "cagr": 0.20149791287529584,
+   "maximum_drawdown": 0.2484414536027717,
+   "trade_win_rate": 0.3333333333333333
+  }
+ },
+ "BEST ROI TUNE_Sat Jan 17 18:18:28 2026_SOL_USDT_900_Sat Jan 17 18:18:28 2026": {
+  "identifier": "BEST ROI TUNE_Sat Jan 17 18:18:28 2026_SOL_USDT_900_Sat Jan 17 18:18:28 2026",
+  "asset": "SOL",
+  "currency": "USDT",
+  "timeframe": 900,
+  "tune": {
+   "lookback": 2,
+   "breakout_buffer": 0.0002,
+   "atr_period": 14,
+   "stop_atr_mult": 1.5,
+   "ema_period": 21
+  },
+  "results": {
+   "roi_assets": 0.7831721457267252,
+   "roi_currency": 1.1672193731429954,
+   "roi": 1.1092208949743994,
+   "cagr": -0.04389660548756402,
+   "maximum_drawdown": 0.22508426800760314,
+   "trade_win_rate": 0.45962732919254656
+  }
+ },
+ "BEST ROI TUNE_Sat Jan 17 18:21:26 2026_SOL_USDT_900_Sat Jan 17 18:21:26 2026": {
+  "identifier": "BEST ROI TUNE_Sat Jan 17 18:21:26 2026_SOL_USDT_900_Sat Jan 17 18:21:26 2026",
+  "asset": "SOL",
+  "currency": "USDT",
+  "timeframe": 900,
+  "tune": {
+   "lookback": 2,
+   "breakout_buffer": 0.0002,
+   "atr_period": 14,
+   "stop_atr_mult": 1.5,
+   "ema_period": 21
+  },
+  "results": {
+   "roi_assets": 0.7831721457267252,
+   "roi_currency": 1.1672193731429954,
+   "roi": 1.1092208949743994,
+   "cagr": -0.04389660548756402,
+   "maximum_drawdown": 0.22508426800760314,
+   "trade_win_rate": 0.45962732919254656
+  }
+ }
+}

@@ -21,8 +21,11 @@ def bound_neurons(bot):
         if strength is 0.5, value is returned as the mean of itself and any boundries it is outside of
         if strength is 0, it is returned as is
 
-        this works for all values of strength between 0 and 1
+        this works for all values of strength between 0 and 1.
+        If strength is > 1 (e.g. 5), it is internally capped at 1.0 to prevent
+        mathematical reflection and negative parameters.
         """
+        strength = min(1.0, max(0.0, strength))
 
         isint = isinstance(value, int)
 
@@ -37,6 +40,10 @@ def bound_neurons(bot):
         # more than maximum
         elif value > maxv:
             ret = (value * (1 - strength)) + (maxv * strength)
+        
+        # ABSOLUTE HARD CLAMP: Guarantee value is within bounds
+        ret = max(minv, min(maxv, ret))
+        
         return int(ret) if isint else ret
 
     def ndclamp(value, minv, maxv, strength):
@@ -47,7 +54,10 @@ def bound_neurons(bot):
         If strength is 0, it is returned as is.
 
         This works for all values of strength between 0 and 1.
+        If strength is > 1 (e.g. 5), it is internally capped at 1.0 to prevent
+        mathematical reflection and negative parameters.
         """
+        strength = min(1.0, max(0.0, strength))
         
         # Create a mask for values less than minv
         less_than_min = value < minv
@@ -65,17 +75,31 @@ def bound_neurons(bot):
         if np.any(greater_than_max):
             ret[greater_than_max] = (value[greater_than_max] * (1 - strength)) + (maxv * strength)
         
+        # ABSOLUTE HARD CLAMP: Guarantee all values are within bounds
+        ret = np.clip(ret, minv, maxv)
+        
         # Return as int if the original value was an integer
         if np.issubdtype(value.dtype, np.integer):
             return ret.astype(int)
         
         return ret
 
+    def ensure_scalar(val):
+        """Garantir que valores escalares sejam tipos Python nativos (não numpy arrays)."""
+        if isinstance(val, np.ndarray):
+            if val.ndim == 0 or val.size == 1:
+                return val.item()
+        if isinstance(val, np.floating):
+            return float(val)
+        if isinstance(val, np.integer):
+            return int(val)
+        return val
+
     bot.tune = {
-        key: (
+        key: ensure_scalar(
             ndclamp(bot.tune[key], minv, maxv, clamp_amt)
-            if isinstance(bot.tune[key], np.ndarray)
-            else clamp(bot.tune[key], minv, maxv, clamp_amt)
+            if isinstance(bot.tune[key], np.ndarray) and bot.tune[key].ndim > 0 and bot.tune[key].size > 1
+            else clamp(ensure_scalar(bot.tune[key]), minv, maxv, clamp_amt)
         )
         for key, (minv, _, maxv, clamp_amt) in bot.clamps.items()
     }
@@ -88,7 +112,9 @@ def print_tune(score, bot, render=False):
     msg = ""
     just = max(map(len, score))
     for k, s in score.items():
-        msg += f"# {k}".ljust(just + 2) + f" {s:.3f}\n"
+        # Exibe como percentual (×100) para facilitar leitura
+        pct = s * 100
+        msg += f"# {k}".ljust(just + 2) + f" {pct:.2f}%\n"
 
     msg += "self.tune = " + json.dumps(bot.tune, indent=4, cls=NdarrayEncoder)
     msg += "\n\n"
@@ -97,16 +123,42 @@ def print_tune(score, bot, render=False):
     return msg
 
 
-def end_optimization(best_bots, show):
-    msg = "\033c=== FINAL TUNES ===\n\n"
-    for coord, (score, bot) in best_bots.items():
-        name = f"BEST {coord.upper()} TUNE"
-        msg += "## " + name + "\n\n"
-        msg += print_tune(score, bot, render=True)
-        save_bot = deepcopy(bot)
-        save_bot.tune = {"tune": bot.tune.copy(), "results": score}
-        qx.core.tune_manager.save_tune(save_bot, name)
+def end_optimization(best_bots, show, asset="UNKNOWN", currency="UNKNOWN"):
+    """Salva apenas o BEST ROI (o mais importante)."""
+    import time
+    
+    # Pega apenas o ROI (o mais importante)
+    if 'roi' in best_bots:
+        coord = 'roi'
+        score, bot = best_bots[coord]
+    else:
+        # Fallback: pega o primeiro
+        coord = list(best_bots.keys())[0]
+        score, bot = best_bots[coord]
+    
+    name = f"BEST {coord.upper()} TUNE"
+    
+    # Monta o objeto no formato limpo
+    tune_data = {
+        "identifier": f"{name}_{time.ctime()}",
+        "asset": asset,
+        "currency": currency,
+        "timeframe": getattr(bot, 'timeframe', 900),
+        "tune": bot.tune.copy(),
+        "results": score
+    }
+    
+    # Salva no arquivo
+    save_bot = deepcopy(bot)
+    save_bot.tune = {"tune": bot.tune.copy(), "results": score}
+    save_bot._tune_asset = asset
+    save_bot._tune_currency = currency
+    qx.core.tune_manager.save_tune(save_bot, name)
+    
+    # Exibe no terminal no mesmo formato JSON
     if show:
+        msg = "\033c=== FINAL TUNE ===\n\n"
+        msg += json.dumps(tune_data, indent=2, cls=NdarrayEncoder)
         print(msg)
 
 

@@ -91,8 +91,10 @@ def print_table(data, x_pos=-1, y_pos=0, render=False, colors=None, pallete=None
                         celldx
                     ] = f"<{len(cell.shape)}D array of {items} items>"
                 else:
-                    processed_cell = cell - np.min(cell)
-                    processed_cell /= np.max(processed_cell)
+                    processed_cell = (cell - np.min(cell)).astype(float)
+                    max_val = np.max(processed_cell)
+                    if max_val > 0:
+                        processed_cell /= max_val
                     column[
                         celldx
                     ] = "".join(f"{red_to_green_fade(value)}█\033[m" for value in np.clip(processed_cell*255, 0, 255))
@@ -261,7 +263,7 @@ def read_file(path):
     Returns:
     - The contents of the file as a string.
     """
-    with open(path, "r") as handle:
+    with open(path, "r", encoding="utf-8") as handle:
         data = handle.read()
     return data
 
@@ -274,7 +276,7 @@ def write_file(path, contents):
     - path: The path to the file to write.
     - contents: The data to write to the file.
     """
-    with open(path, "w") as handle:
+    with open(path, "w", encoding="utf-8") as handle:
         handle.write(json.dumps(contents, indent=1, cls=NdarrayEncoder))
 
 
@@ -289,7 +291,7 @@ def race_write(doc="", text=""):
         try:
             time.sleep(0.05 * i**2)
             i += 1
-            with open(doc, "w+") as handle:
+            with open(doc, "w+", encoding="utf-8") as handle:
                 handle.write(text)
                 handle.close()
                 break
@@ -319,7 +321,7 @@ def race_read(doc):
         try:
             time.sleep(0.05 * i**2)
             i += 1
-            with open(doc, "r") as handle:
+            with open(doc, "r", encoding="utf-8") as handle:
                 data = json_loads(handle.read())
                 handle.close()
                 return data
@@ -377,11 +379,16 @@ def json_ipc(doc="", text="", initialize=False, append=False):
     tag = ""
     if not act == "appending":
         tag = "<<< JSON IPC >>>"
-    # determine where we are in the file system; change directory to pipe folder
-    path = f"{PATH}/pipe"
+    # determine where we are in the file system; change directory to data folder
+    path = f"{PATH}/data"
     # ensure we're writing json then add prescript and postscript for clipping
     try:
-        text = tag + json_dumps(json_loads(text)) + tag if text else text
+        if text:
+            # Only add tags if it's not a .json file
+            if doc.endswith(".json"):
+                text = json_dumps(json_loads(text))
+            else:
+                text = tag + json_dumps(json_loads(text)) + tag
     except Exception as error:
         print(text)
         print(error)
@@ -403,19 +410,23 @@ def json_ipc(doc="", text="", initialize=False, append=False):
             time.sleep(0.02 * iteration**2)
             try:
                 if act == "appending":
-                    with open(doc, "a") as handle:
+                    with open(doc, "a", encoding="utf-8") as handle:
                         handle.write(text)
                         handle.close()
                         break
                 elif act == "writing":
-                    with open(doc, "w+") as handle:
+                    with open(doc, "w+", encoding="utf-8") as handle:
                         handle.write(text)
                         handle.close()
                         break
                 elif act == "reading":
-                    with open(doc, "r") as handle:
+                    with open(doc, "r", encoding="utf-8") as handle:
                         # only accept legitimate json
-                        data = json_loads(handle.read().split(tag)[1])
+                        content = handle.read()
+                        if tag and tag in content:
+                            data = json_loads(content.split(tag)[1])
+                        else:
+                            data = json_loads(content)
                         handle.close()
                         break
             except Exception:

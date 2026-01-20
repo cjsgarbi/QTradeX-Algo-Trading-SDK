@@ -87,7 +87,7 @@ class QPSOoptions:
         self.synapses = 50
         self.neurons = []
         self.show_terminal = True
-        self.print_tune = False
+        self.print_tune = True
 
 
 def printouts(kwargs):
@@ -455,5 +455,5 @@ class QPSO:
                     raise KeyboardInterrupt
 
         except KeyboardInterrupt:
-            end_optimization(best_bots, self.options.print_tune)
+            end_optimization(best_bots, self.options.print_tune, asset=self.data.asset, currency=self.data.currency)
             return best_bots
