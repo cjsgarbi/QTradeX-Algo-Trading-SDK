@@ -29,7 +29,13 @@ qtradex/indicators/qi.c*
 .vscode/
 .idea/
 
-# Strategies (Ignore all except base)
-strategies/*
-!strategies/strategy_base.py
-!strategies/__init__.py
+# Strategies (Apenas strategy_base.py e __init__.py sobem no Git)
+strategies/__pycache__/
+strategies/tunes/
+strategies/ZigZagATR.py
+strategies/ZigZagFractal.py
+strategies/ZigZagPivots.py
+strategies/extinction_event.py
+strategies/renko.py
+strategies/renko_pro.py
+strategies/renko_scalp.py
