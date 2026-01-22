@@ -30,8 +30,6 @@ qtradex/indicators/qi.c*
 .idea/
 
 # Strategies (Apenas strategy_base.py e __init__.py sobem no Git)
-strategies/__pycache__/
-strategies/tunes/
 strategies/ZigZagATR.py
 strategies/ZigZagFractal.py
 strategies/ZigZagPivots.py
