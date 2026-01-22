@@ -300,7 +300,8 @@ class Data:
 
             candles = dict()
             if len(data) > 1:
-                print(f"Merging {len(data)} candlesets into one...")
+                if DETAIL:
+                    print(f"Merging {len(data)} candlesets into one...")
                 # merge the two data sources
                 # this will implicitly never happen if erase_cache is True, though
                 # an explicit check might be prudent

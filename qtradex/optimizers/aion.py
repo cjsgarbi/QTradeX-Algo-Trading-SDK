@@ -148,10 +148,16 @@ def printouts(ctx):
         except: return v
 
     table = [[""] + ctx["params"] + [""] + ctx["coords"] + [""]]
-    table.append(["current"] + [fmt(v) for v in ctx["bot"].tune.values()] + [""] + [fmt(v) for v in ctx["score"].values()] + [""])
+    
+    # Safe fetch for current
+    curr_row = ["current"] + [fmt(v) for v in ctx["bot"].tune.values()] + [""]
+    curr_row += [fmt(ctx["score"].get(c, 0)) for c in ctx["coords"]] + [""]
+    table.append(curr_row)
     
     for c, (s, b) in ctx["best"].items():
-        table.append([c] + [fmt(v) for v in b.tune.values()] + [""] + [fmt(v) for v in s.values()] + ["###"])
+        row = [c] + [fmt(v) for v in b.tune.values()] + [""]
+        row += [fmt(s.get(coord, 0)) for coord in ctx["coords"]] + ["###"]
+        table.append(row)
     
     n = len(ctx["coords"])
     eye = np.eye(n).astype(int)
@@ -184,8 +190,9 @@ def printouts(ctx):
             try: return float(v.item()) if hasattr(v, 'item') else float(v)
             except: return 0.0
         
-        # User Preference: ROI as direct percentage of capital (0.9317 = 93.17%)
-        roi_t = sf(score_t.get('roi', 1.0)) * 100
+        # User Preference: ROI as direct percentage of capital
+        # ROI is a multiplier: 1.92 = +92% gain, 0.85 = -15% loss
+        roi_t = (sf(score_t.get('roi', 1.0)) - 1.0) * 100
         mdd_t = sf(score_t.get('maximum_drawdown', 0.1)) * 100
         wr_t = sf(score_t.get('trade_win_rate', 0.0)) * 100
         msg += it("green", f"🏆 BEST ROI MEMORY (MDD < 25%): ROI={roi_t:.2f}%  MDD={mdd_t:.2f}%  WR={wr_t:.2f}%\n")
@@ -573,8 +580,10 @@ class AION:
         self._learn(bot.tune, bot.tune, self._scalar(initial.get('roi', 0)), False, list(params))
         
         # 🏆 Initialize Trophy with initial result if it qualifies
+        # CRITÉRIO: ROI > 1.0 (lucro positivo) E MDD < 25%
+        init_roi = self._scalar(initial.get('roi', 1.0))
         init_mdd = self._scalar(initial.get('maximum_drawdown', 0.5))
-        if init_mdd <= 0.25:
+        if init_mdd <= 0.25 and init_roi > 1.0:
             self.state.best_trophy = {'score': deepcopy(initial), 'bot': deepcopy(bot)}
         
         if opts.fitness_ratios is None:
@@ -658,8 +667,8 @@ class AION:
                     if new_wr < 0.45:
                         wr_penalty = 1.0 / (1.0 + math.exp(20.0 * (0.45 - new_wr)))
                     
-                    # Balanced Score: ROI weighted by Risk/WR penalties
-                    new_balanced = ((new_roi - 1.0) * (new_wr + 0.01) * mdd_penalty * wr_penalty)
+                    # Balanced Score: ROI weighted by Risk/WR penalties (ROI is already Net Return)
+                    new_balanced = (new_roi * (new_wr + 0.01) * mdd_penalty * wr_penalty)
                 
                 best_roi_val = self._scalar(best['roi'][0].get('roi', 1.0))
                 best_mdd_val = self._scalar(best['roi'][0].get('maximum_drawdown', 0.1))
@@ -668,25 +677,42 @@ class AION:
                 # Same formula for the current best
                 best_mdd_penalty = 1.0 / (1.0 + math.exp(20.0 * (best_mdd_val - opts.pareto_mdd_threshold)))
                 best_wr_penalty = 1.0 / (1.0 + math.exp(20.0 * (0.45 - best_wr_val))) if best_wr_val < 0.45 else 1.0
-                best_balanced = ((best_roi_val - 1.0) * (best_wr_val + 0.01) * best_mdd_penalty * best_wr_penalty)
+                best_balanced = (best_roi_val * (best_wr_val + 0.01) * best_mdd_penalty * best_wr_penalty)
                 
                 # 🔒 ELITE PROTECTION: ROI can NEVER decrease unless MDD improved significantly
                 roi_improved = new_roi > best_roi_val
                 mdd_improved = new_mdd < (best_mdd_val * 0.90) # 10% relative improvement in risk
                 balanced_improved = new_balanced > best_balanced
                 
-                # ROI coord: Updated when balanced improves OR (ROI improves and risk is within Pareto limit)
-                # Pareto Safety: Don't accept ROI gains if MDD > 25% OR MDD increased by >50% relative
-                risk_explosion = new_mdd > 0.25 or (new_mdd > best_mdd_val * 1.5 and new_mdd > 0.10)
+                # USER CONSTRAINT: "Dynamic ROI/WR evolution as long as MDD < 25%"
+                # If we are in the SAFE ZONE (MDD < 25%), we accept ROI gains more aggressively.
+                is_safe_zone = new_mdd <= 0.25
                 
-                if balanced_improved or (roi_improved and not risk_explosion) or (mdd_improved and new_roi >= best_roi_val * 0.95):
+                # Risk Explosion only applies if we breach the hard limit
+                # We relax the "relative increase" check if we are still safely under 25%
+                risk_breach = new_mdd > 0.25
+                
+                if risk_breach:
+                    # If we breach 25%, we only accept if it's a massive ROI gain that might justify it (rare)
+                    # or if we are just moving from a huge breach to a smaller breach
+                     accept_roi = False
+                else:
+                    # In Safe Zone: Accept if ROI improves, OR if Balanced Score improves (covers Win Rate)
+                    # CRITICAL: ROI MUST BE POSITIVE. We do not accept improvements in "losing less".
+                    accept_roi = (roi_improved or balanced_improved) and new_roi > 0
+
+                # Special Case: Reducing Risk significantly while keeping similar ROI (must be positive)
+                risk_optimization = mdd_improved and new_roi >= (best_roi_val * 0.95) and new_roi > 0
+
+                if (accept_roi and not risk_breach) or risk_optimization:
                     best['roi'] = (score, deepcopy(bot))
                     boom.append('roi')
                     improved = True
                 
                 # 🏆 BEST ROI MEMORY (The Trophy - Glass Zone 0-25% MDD)
-                # Snapshot of the absolute best 'roi' achievement
-                if new_mdd <= 0.25:
+                # CRITÉRIO: ROI > 1.0 (lucro positivo) E MDD < 25%
+                # NÃO aceita ROI negativo, apenas resultados com lucro real
+                if new_mdd <= 0.25 and new_roi > 1.0:
                     if st.best_trophy is None:
                         st.best_trophy = {'score': deepcopy(score), 'bot': deepcopy(bot)}
                     else:
@@ -709,7 +735,24 @@ class AION:
                     if c == 'roi':
                         continue  # Already handled above
                     try:
-                        if self._scalar(score.get(c, 0)) > self._scalar(s.get(c, 0)):
+                        new_val = self._scalar(score.get(c, 0))
+                        best_val = self._scalar(s.get(c, 0))
+                        
+                        # LOGIC FIX: Minimize Bad Metrics, Maximize Good Metrics
+                        is_bad_metric = c in ['maximum_drawdown', 'drawdown_duration', 'risk', 'ulcer_index']
+                        
+                        improved_metric = False
+                        if is_bad_metric:
+                            # MINIMIZE (Lower is better)
+                            # Must be > 0 to be valid risk metric usually, but let's assume raw value
+                            if new_val < best_val:
+                                improved_metric = True
+                        else:
+                            # MAXIMIZE (Higher is better)
+                            if new_val > best_val:
+                                improved_metric = True
+                        
+                        if improved_metric:
                             best[c] = (score, deepcopy(bot))
                             boom.append(c)
                             improved = True
@@ -718,7 +761,9 @@ class AION:
                 
                 # ═══ LEARNER AGENT ═══
                 # Updates: param_hist, gradients, elite, synapses, neuron_impacts, temperature
-                self._learn(old_tune, bot.tune, new_roi, improved, neurons)
+                # CRITICAL: We pass 'new_balanced' instead of 'new_roi'. 
+                # If MDD > Limit, new_balanced is low/negative. This teaches AION that this region is BAD.
+                self._learn(old_tune, bot.tune, new_balanced, improved, neurons)
                 
                 if improved:
                     historical.append((st.iteration, deepcopy(best)))
@@ -762,7 +807,7 @@ class AION:
                     replaced = True
             
             if replaced:
-                final_roi_pct = t_roi * 100
+                final_roi_pct = (t_roi - 1.0) * 100
                 print(it("green", f"🏆 Replacing Output with BEST ROI MEMORY (Trophy ROI: {final_roi_pct:.2f}%)"))
 
         end_optimization(best, opts.print_tune, asset=self.data.asset, currency=self.data.currency)

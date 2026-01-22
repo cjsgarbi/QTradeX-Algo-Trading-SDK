@@ -52,15 +52,18 @@ O AION mantém um **Pool de Elite**. Mesmo que o enxame explore regiões desastr
 
 ### 🏆 Best ROI Memory (Zona de Vidro 0-25% MDD)
 Além do enxame principal, o AION mantém uma memória especial chamada **Best ROI Memory (Troféu)**.
-- **Objetivo:** Capturar o melhor resultado absoluto de lucro, desde que o risco (MDD) esteja dentro da "Zona de Vidro" (abaixo de 25%).
-- **Formato de Exibição:** O ROI é exibido como porcentagem direta do capital (Multiplicador × 100). Exemplo: `ROI=95.46%` para um multiplicador de 0.9546.
-- **Lógica de Evolução:** O Troféu é atualizado em três casos:
-  1. Se um novo teste atingir um **ROI Maior** que o recorde atual.
+- **Critérios Obrigatórios (v2025.14):** O Troféu só aceita resultados que atendam AMBOS os critérios:
+  1. **ROI > 1.0** (lucro positivo, ou seja, ganhou dinheiro)
+  2. **MDD < 25%** (risco controlado dentro da "Zona de Vidro")
+- **Objetivo:** Capturar o melhor resultado absoluto de lucro REAL, ignorando perdas mesmo que tenham baixo drawdown.
+- **Formato de Exibição:** O ROI é exibido como porcentagem direta do capital. Exemplo: `ROI=10.50%` para um multiplicador de 1.105.
+- **Lógica de Evolução:** O Troféu é atualizado em dois casos:
+  1. Se um novo teste atingir um **ROI Maior** que o recorde atual (ambos positivos).
   2. Se um novo teste tiver um **MDD Menor (mais seguro)** com ROI igual ou superior.
-  3. Se um novo teste tiver o mesmo MDD, mas um ROI ligeiramente melhor.
-- **Seeding Híbrido (v2025.14):** O Troféu não é apenas uma moldura na parede; ele agora serve como a semente genética para 20% das novas mutações, garantindo que o enxame explore a vizinhança do recorde absoluto.
-- **Independência:** Este troféu é visualizado separadamente no terminal (em verde, na parte inferior) e não sofre interferência da busca por equilíbrio (Pareto) do enxame principal.
+- **Seeding Híbrido (v2025.14):** O Troféu serve como semente genética para 20% das novas mutações.
+- **Independência:** Este troféu é visualizado separadamente no terminal (em verde) e não sofre interferência da busca por equilíbrio (Pareto) do enxame principal.
 - **Resultado Final:** Ao encerrar o otimizador (Ctrl+C), se o Troféu possuir um ROI superior ao campeão equilibrado do enxame, o AION **força a substituição** e prioriza a exportação do Troféu como o resultado final no arquivo JSON.
+
 
 ### 🌡️ Aquecimento Termodinâmico (Stagnation Heat & Micro-Reheat)
 Quando o sistema detecta que as novas tentativas estão retrocedendo ou estagnando:

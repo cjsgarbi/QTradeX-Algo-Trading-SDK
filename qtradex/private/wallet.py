@@ -31,10 +31,12 @@ class WalletBase:
         return self.balances.values()
 
     def copy(self):
-        # create a new instance of a given subclass
-        new_wallet = PaperWallet()
+        # Create a new instance of the same class
+        new_wallet = type(self)(fee=self.fee)
         new_wallet._readonly = self._readonly
         new_wallet.balances = self.balances.copy()
+        if hasattr(self, 'price'):
+            new_wallet.price = self.price
         return new_wallet
 
     def value(self, pair, price=None):

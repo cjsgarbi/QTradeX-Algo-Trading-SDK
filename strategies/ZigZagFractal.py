@@ -174,7 +174,6 @@ class ZigZagFractal(qx.BaseBot):
     def fitness(self, states, raw_states, asset, currency):
         """Métricas de performance para otimização"""
         return [
-            "roi_assets",
             "roi_currency",
             "roi",
             "cagr",
@@ -186,7 +185,7 @@ class ZigZagFractal(qx.BaseBot):
 # CONFIGURAÇÃO GLOBAL
 # ===========================================================================
 # 60=1m, 300=5m, 900=15m, 3600=1h, 14400=4h, 86400=1d
-TIMEFRAME = 900  # 5 minutos (Scalping Agressivo)
+TIMEFRAME = 900  # 
 FEE = 0.1  # 0.1%
 
 

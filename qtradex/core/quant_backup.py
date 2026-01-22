@@ -73,87 +73,20 @@ def filter_glitches(days, tune):
 
 
 def preprocess_states(states, pair):
-    """
-    Processa os estados do backtest, agrupando trades em PARES (BUY -> SELL).
-    
-    Um "trade completo" é definido como:
-    - ENTRADA (BUY): Compra do ativo
-    - SAÍDA (SELL): Venda do ativo
-    
-    O resultado (win/loss) é calculado apenas quando o par é fechado (SELL).
-    """
-    from qtradex.private.signals import Buy, Sell
-    
     new_states = {}
     new_states["wins"] = []
     new_states["losses"] = []
     new_states["detailed_wins"] = []
     new_states["detailed_losses"] = []
 
-    # Agrupa trades em pares (BUY -> SELL) para contagem correta
-    entry_trade = None
-    
-    for trade in states["trades"]:
-        if trade is None:
-            continue
-        
-        is_buy = isinstance(trade, Buy)
-        is_sell = isinstance(trade, Sell)
-        
-        if is_buy and entry_trade is None:
-            # Registra entrada (BUY) - aguarda o SELL para fechar o par
-            entry_trade = trade
-            
-        elif is_sell and entry_trade is not None:
-            # Fecha o par (BUY -> SELL) - calcula resultado do ciclo completo
-            # Lucro Real = (Preço Saída / Preço Entrada) * (1 - taxas totais)
-            fee_factor = (1 - states["balances"][0].fee / 100) ** 2
-            profit_val = (trade.price / entry_trade.price) * fee_factor
-            
-            if profit_val >= 1.0:
-                key = "wins"
-            else:
-                key = "losses"
-            
-            data_dict = {
-                "roi": profit_val, 
-                "unix": trade.unix, 
-                "price": trade.price, 
-                "object": trade,
-                "entry_unix": entry_trade.unix,
-                "entry_price": entry_trade.price
-            }
-            new_states[f"{key}"].append(profit_val)
-            new_states[f"detailed_{key}"].append(data_dict)
-            
-            # Reseta para o próximo par
-            entry_trade = None
-            
-        elif is_buy and entry_trade is not None:
-            # BUY duplicado (posição já aberta) - mantém a primeira entrada
-            pass
-            
-        elif is_sell and entry_trade is None:
-            # SELL sem BUY anterior (ativo já em carteira no início)
-            # Como não temos o preço de compra, usamos o primeiro preço do backtest como baseline
-            profit_val = (trade.price / states["close"][0]) * (1 - states["balances"][0].fee / 100)
-            key = "wins" if profit_val >= 1.0 else "losses"
-            data_dict = {
-                "roi": profit_val, 
-                "unix": trade.unix, 
-                "price": trade.price, 
-                "object": trade
-            }
-            new_states[f"{key}"].append(profit_val)
-            new_states[f"detailed_{key}"].append(data_dict)
-    
-    # Se sobrou um BUY sem SELL (posição aberta), registra como pendente
-    if entry_trade is not None:
-        new_states["pending_entry"] = {
-            "unix": entry_trade.unix,
-            "price": entry_trade.price,
-            "object": entry_trade
-        }
+    for trade in states["trades"][1:]:
+        data_dict = {"roi": trade.profit, "unix": trade.unix, "price": trade.price, "object":trade}
+        if trade.profit >= 1:
+            key = "wins"
+        else:
+            key = "losses"
+        new_states[f"{key}"].append(trade.profit)
+        new_states[f"detailed_{key}"].append(data_dict)
 
     new_states["balance_states"] = [
         i.value(pair, close) for i, close in zip(states["balances"], states["close"])

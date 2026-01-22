@@ -27,9 +27,21 @@ def load_tune(bot):
     ]
     choice = select(options)
     if choice == 0:
-        return load_from_manager(bot)
+        try:
+            return load_from_manager(bot)
+        except FileNotFoundError:
+            print(f"\n\033[91m [!] The given bot has no saved tunes. \033[0m")
+            print(f"\033[93m [!] Please optimize the strategy first or use defaults (Option 2). \033[0m")
+            import sys
+            sys.exit(0)
     elif choice == 1:
-        return load_from_manager(bot, sort="latest")
+        try:
+            return load_from_manager(bot, sort="latest")
+        except FileNotFoundError:
+            print(f"\n\033[91m [!] The given bot has no saved tunes. \033[0m")
+            print(f"\033[93m [!] Please optimize the strategy first or use defaults (Option 2). \033[0m")
+            import sys
+            sys.exit(0)
     elif choice == 2:
         return bot.tune
     elif choice == 3:

@@ -29,5 +29,7 @@ qtradex/indicators/qi.c*
 .vscode/
 .idea/
 
-# Strategies (Ignore cache inside)
-strategies/__pycache__/
+# Strategies (Ignore all except base)
+strategies/*
+!strategies/strategy_base.py
+!strategies/__init__.py

@@ -122,6 +122,9 @@ class strategy_base(qx.BaseBot):
         # TIMEFRAME: Configura o timeframe preferido para os agentes lerem
         # ===================================================================
         self.timeframe = TIMEFRAME
+        self.fee = FEE
+        self.warmup = 105  # Quantidade de candles para aquecer indicadores
+
         
         # ===================================================================
         # TUNE: Parâmetros que podem ser otimizados pelo algoritmo genético
@@ -283,7 +286,6 @@ class strategy_base(qx.BaseBot):
             tuple: (lista_de_metricas, dict_customizado)
         """
         return [
-            "roi_assets",
             "roi_currency",
             "roi",
             "cagr",
@@ -333,6 +335,7 @@ def main():
         asset=asset,
         currency=currency,
         begin="2026-01-01",
+        #end="2026-01-14",  # Data fixa (opcional)
         end=int(time.time()),   # Dados até o segundo atual (Unix Timestamp)
         candle_size=TIMEFRAME,  # OBRIGATÓRIO: Define timeframe para Backtest
     )

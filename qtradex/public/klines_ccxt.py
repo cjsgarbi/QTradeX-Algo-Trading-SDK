@@ -142,11 +142,12 @@ def paginate_candles(api, start, end, interval):
     # If that didn't return enough
     while depth > 0 and last_chunk:
         # Find how many are left
-        print(f"Only got {len(last_chunk)} datapoints, {depth} left.")
+        if DETAIL:
+            print(f"Only got {len(last_chunk)} datapoints, {depth} left.")
         # Tick forward, but leave an `overlap`
         start += (len(last_chunk) - overlap) * interval
         # Don't anger the database overlords
-        time.sleep(2)
+        time.sleep(0.5) # Reduzido de 2.0 para 0.5 para ser menos obstrutivo
         # Get more candles
         last_chunk = candles(api, start, interval, limit=depth)
         data.extend(last_chunk)
@@ -160,7 +161,8 @@ def candles(api, start, interval, limit):
             # initialize the exchange
             exchange = api["ccxt_hook"]
             timeframe = format_timeframe(interval)
-            print(f"Collecting {limit} candles for {api['pair']} from {start} @ {timeframe} candles")
+            if DETAIL:
+                print(f"Collecting {limit} candles for {api['pair']} from {start} @ {timeframe} candles")
             if timeframe not in exchange.timeframes:
                 raise BadTimeframeError(
                     "Valid timeframes: ",

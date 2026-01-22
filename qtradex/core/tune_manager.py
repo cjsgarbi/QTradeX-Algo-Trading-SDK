@@ -180,11 +180,11 @@ def load_tune(bot, key=None, sort="roi"):
     candidates = {k: v for k, v in contents.items() if k != "source" and is_compatible(v, bot)}
     
     if not candidates:
-        # Se não achou nenhum compatível, avisa mas tenta fallback geral ou erro
-        # Tenta pegar qualquer um se não houver compatível (ou raise error?)
-        # Vamos tentar pegar qualquer um para não travar totalmente, mas ideal seria erro.
-        # Por enquanto: raise warning ou erro. Vamos dar erro para forçar otimização correta.
-        raise ValueError(f"No stored tunes found for {getattr(bot, 'asset', '?')}/{getattr(bot, 'currency', '?')} {getattr(bot, 'timeframe', '?')}s. Run Optimize first.")
+        # Se não achou nenhum compatível, avisa e usa o padrão
+        print(it("yellow", f"\n  [!] Tuner não encontrado para {getattr(bot, 'asset', '?')}/{getattr(bot, 'currency', '?')} {getattr(bot, 'timeframe', '?')}s"))
+        print(it("yellow", "  [!] Por favor, faça a otimização. Usando valores padrão do bot por enquanto...\n"))
+        time.sleep(2)
+        return bot.tune if hasattr(bot, 'tune') else {}
 
     # Determine the key to load based on sorting criteria
     if key is None:

@@ -238,7 +238,8 @@ def main():
         asset=asset,
         currency=currency,
         # pool="1.19.160",
-        begin="2025-09-01",
+        begin="2025-06-01",
+        #end="2026-01-14",  # Data fixa (opcional)
         end=int(time.time()),
         candle_size=TIMEFRAME, # Configura para Backtest e Otimizadores
     )

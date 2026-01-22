@@ -256,7 +256,6 @@ class ZigZagPivots(qx.BaseBot):
     def fitness(self, states, raw_states, asset, currency):
         """Métricas de performance para otimização"""
         return [
-            "roi_assets",
             "roi_currency",
             "roi",
             "cagr",

@@ -34,25 +34,26 @@ class RenkoScalp(qx.BaseBot):
         """Inicialização da estratégia."""
         self.timeframe = TIMEFRAME
         self.fee = FEE
+        self.warmup = 90  # Quantidade de candles para aquecer indicadores
         
         # Parâmetros para SCALPING (alta frequência)
         self.tune = {
-            "atr_len": 8.473,             # Parâmetro Campeão (Trophy)
-            "atr_mult": 1.478,            # Parâmetro Campeão (Trophy)
-            "min_bricks": 1,              # Parâmetro Campeão (Trophy)
-            "rsi_len": 5,                 # Parâmetro Campeão (Trophy)
-            "rsi_oversold": 33.07,        # Parâmetro Campeão (Trophy)
-            "rsi_overbought": 65.00,      # Parâmetro Campeão (Trophy)
+            "atr_len": 14,                # Mais estável
+            "atr_mult": 3.0,              # Brick > Fees (0.2%)
+            "min_bricks": 2,              # Confirmação robusta
+            "rsi_len": 14,                # Padrão
+            "rsi_oversold": 30,           
+            "rsi_overbought": 70,         
         }
 
-        # Limites para otimização - faixas SCALPING
+        # Limites para otimização - faixas SCALPING VIÁVEL
         self.clamps = {
-            "atr_len":        [5, 10, 20, 1],
-            "atr_mult":       [0.3, 0.8, 1.5, 0.1],   # Pequeno!
-            "min_bricks":     [1, 1, 3, 1],           # Rápido!
-            "rsi_len":        [5, 7, 14, 1],
-            "rsi_oversold":   [15, 25, 35, 1],        # Corrigido: era 5
-            "rsi_overbought": [65, 75, 85, 1],        # Corrigido: era 5
+            "atr_len":        [10, 20, 30, 1],
+            "atr_mult":       [2.0, 4.0, 6.0, 0.2],   # Brick Grande!
+            "min_bricks":     [2, 3, 5, 1],           # Evitar ruído
+            "rsi_len":        [7, 14, 21, 1],
+            "rsi_oversold":   [20, 30, 40, 1],        
+            "rsi_overbought": [60, 70, 80, 1],        
         }
 
     def indicators(self, data):
@@ -136,8 +137,14 @@ class RenkoScalp(qx.BaseBot):
         COMPRA: Bricks de alta >= min_bricks E RSI não sobrecomprado
         VENDA: Bricks de baixa >= min_bricks E RSI não sobrevendido
         """
-        consecutive = indicators["consecutive"]
-        rsi = indicators["rsi"]
+        # Extrair valores - funciona para arrays (papertrade) e escalares (backtest)
+        def get_last(val):
+            if hasattr(val, "__len__") and not isinstance(val, str):
+                return val[-1] if len(val) > 0 else 0
+            return val
+
+        consecutive = get_last(indicators.get("consecutive", 0))
+        rsi = get_last(indicators.get("rsi", 50))
         
         min_bricks = int(self.tune["min_bricks"])
         oversold = self.tune["rsi_oversold"]
@@ -160,7 +167,7 @@ class RenkoScalp(qx.BaseBot):
         elif short_signal and not long_signal:
             return qx.Sell()
         
-        return None
+        return qx.Hold()
 
     def execution(self, signal, indicators, wallet):
         """Executa ordens no preço de mercado."""
@@ -184,7 +191,6 @@ class RenkoScalp(qx.BaseBot):
     def fitness(self, states, raw_states, asset, currency):
         """Métricas de otimização."""
         return [
-            "roi_assets",
             "roi_currency",
             "roi",
             "cagr",
@@ -197,7 +203,8 @@ class RenkoScalp(qx.BaseBot):
 # ===========================================================================
 # CONFIGURAÇÃO GLOBAL - SCALPING
 # ===========================================================================
-TIMEFRAME = 300  # 5 minutos (ideal para scalping)
+# 60=1m, 300=5m, 900=15m, 3600=1h, 14400=4h, 86400=1d
+TIMEFRAME = 300  # 5 minutos (Solitado pelo usuário)
 FEE = 0.1  # 0.1%
 
 # ===========================================================================
@@ -215,6 +222,7 @@ def main():
         asset=asset,
         currency=currency,
         begin="2025-12-01",  # Período unificado para resgatar os 95% de ROI
+        #end="2026-01-14",  # Data fixa (opcional)
         end=int(time.time()), # Dados até o segundo atual (Unix Timestamp)
         candle_size=TIMEFRAME,
     )

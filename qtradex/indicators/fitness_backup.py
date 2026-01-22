@@ -29,57 +29,60 @@ import numpy as np
 import scipy.stats
 
 
-def roi_quote_currency(balances, prices, pair):
-    """Calcula o ROI baseado no valor em Moeda de Cotação (ex: USDT) - RETORNO LIQUIDO"""
-    initial_val = balances[0][pair[1]] + balances[0][pair[0]] * prices[0]
-    final_val = balances[-1][pair[1]] + balances[-1][pair[0]] * prices[-1]
-    # Retorna o ROI como multiplicador (ex: 1.10 para 10% de lucro, 0.95 para 5% de perda)
-    return (final_val / initial_val) if initial_val > 0 else 1.0
+def roi_assets(balances, prices, pair):
+    initial_balance = balances[0][pair[1]] + balances[0][pair[0]] * prices[0]
+    final_balance = balances[-1][pair[1]] + balances[-1][pair[0]] * prices[-1]
+
+    # Calculate ROI as percent increase
+    # add one because we want "X" i.e. 1 is break even 2 is 100% gain
+    return ((final_balance - initial_balance) / initial_balance) + 1
 
 
-def roi_base_asset(balances, prices, pair):
-    """Calcula o ROI baseado no valor em Ativo Base (ex: BTC) -- BENCHMARK"""
-    initial_val = balances[0][pair[0]] + balances[0][pair[1]] / prices[0]
-    final_val = balances[-1][pair[0]] + balances[-1][pair[1]] / prices[-1]
-    # Retorna o ROI como multiplicador
-    return (final_val / initial_val) if initial_val > 0 else 1.0
+def roi_currency(balances, prices, pair):
+    initial_balance = balances[0][pair[0]] + balances[0][pair[1]] / prices[0]
+    final_balance = balances[-1][pair[0]] + balances[-1][pair[1]] / prices[-1]
+
+    # Calculate ROI as percent increase
+    # add one because we want "X" i.e. 1 is break even 2 is 100% gain
+    return ((final_balance - initial_balance) / initial_balance) + 1
 
 
+def roi_static(balances, prices, pair):
+    return (
+        roi_assets([balances[0], balances[0]], prices, pair)
+        * roi_currency([balances[0], balances[0]], prices, pair)
+    ) ** 0.5
 
 
 def roi_gross(balances, prices, pair, percent_cheats):
     """
-    Retorna o ROI Real na moeda de cotação (Saldo Final / Saldo Inicial - 1).
-    SEM penalidade de cheats - mostra o valor REAL.
+    # Calculate the geometric mean of the return on investment
+    sqrt(roi_assets*roi_currency)
     """
-    # Retorna o ROI Liquido PURO, sem penalidades
-    return roi_quote_currency(balances, prices, pair)
+    return (
+        ((roi_assets(balances, prices, pair) * roi_currency(balances, prices, pair)) ** 0.5)
+        / roi_static(balances, prices, pair)
+    ) * (1 + (percent_cheats / 100))
 
 
 def cagr(balances, unix_timestamps):
     """
     Calculate the Compound Annual Growth Rate (CAGR).
-    For losses (ROI < 1.0), uses linear calculation to stay proportional.
-    For profits (ROI >= 1.0), uses exponential annualization.
+
+    Parameters:
+    balances (list): List of balance values over time.
+    unix_timestamps (list): List of corresponding Unix timestamps.
+
+    Returns:
+    float: The CAGR as a decimal.
     """
     ending_value = balances[-1]
     beginning_value = balances[0]
     years = (unix_timestamps[-1] - unix_timestamps[0]) / (60 * 60 * 24 * 365)
-    
-    if years <= 0:
-        return 0.0
-    
-    roi = ending_value / beginning_value
-    
-    # Standard CAGR Formula: (Ending / Beginning) ^ (1 / n) - 1
-    # Works for both gains and losses (as long as Ending > 0)
-    try:
-        return (roi) ** (1 / years) - 1
-    except:
-        return -1.0 # Handle math errors (e.g. negative balance) as -100%
+    return (ending_value / beginning_value) ** (1 / years) - 1
 
 
-def sharpe_ratio(roi, wins=[], losses=[], risk_free_rate=0.05):
+def sharpe_ratio(roi, wins=[], losses=[], risk_free_rate=1.05):
     """
     Calculate the Sharpe Ratio.
 
@@ -96,57 +99,39 @@ def sharpe_ratio(roi, wins=[], losses=[], risk_free_rate=0.05):
     return (roi - risk_free_rate) / (portfolio_std_dev or 1)
 
 
-def sortino_ratio(roi, losses=[], risk_free_rate=0.05):
+def sortino_ratio(roi, losses=[], risk_free_rate=1.05):
     """
-    Calculate the Sortino Ratio (Industry Standard).
+    Calculate the Sortino Ratio.
 
     Parameters:
     roi (float): The average return of the portfolio.
     risk_free_rate (float): The return on a risk-free investment (default is 1.05).
-    losses (list): List of losing trades (as negative returns).
+    losses (list): List of losing trades.
 
     Returns:
     float: The Sortino Ratio.
     """
-    # Downside deviation = standard deviation of negative returns only
-    if not losses or len(losses) < 2:
-        downside_deviation = 1.0
-    else:
-        downside_deviation = np.std(losses)
-    
+    downside_deviation = np.std(functools.reduce(lambda x, y: x * y, losses)) if losses else 1
+
     if downside_deviation == 0:
-        downside_deviation = 1.0
+        downside_deviation = 1
 
     return (roi - risk_free_rate) / downside_deviation
 
 
 def maximum_drawdown(balances):
     """
-    Calculate the Maximum Drawdown (MDD) using rolling peak.
-    
-    Industry Standard (CFA Institute):
-    MDD = (Peak - Trough AFTER Peak) / Peak
-    
+    Calculate the Maximum Drawdown (MDD).
+
     Parameters:
     balances (list): List of balance values over time.
 
     Returns:
-    float: The Maximum Drawdown as a decimal (0.0 to 1.0).
+    float: The Maximum Drawdown as a decimal.
     """
-    if len(balances) < 2:
-        return 0.0
-    
-    peak = balances[0]
-    max_dd = 0.0
-    
-    for balance in balances:
-        if balance > peak:
-            peak = balance
-        dd = (peak - balance) / peak if peak > 0 else 0
-        if dd > max_dd:
-            max_dd = dd
-    
-    return max_dd
+    peak = max(balances)
+    trough = min(balances)
+    return (peak - trough) / peak
 
 
 def calmar_ratio(cagr_value, maximum_drawdown_value):
@@ -191,7 +176,7 @@ def beta(tick_roi, tick_hold):
     return np.cov(tick_roi, tick_hold)[0][1] / np.var(tick_hold)
 
 
-def alpha(roi, beta, market_return, risk_free_rate=0.05):
+def alpha(roi, beta, market_return, risk_free_rate=1.05):
     """
     Calculate Jensen's Alpha.
 
@@ -409,13 +394,9 @@ def fitness(keys, states, raw_states, asset, currency):
     # fmt: off
     calculations = {
         "percent_cheats": (percent_cheats, (states,)),
-        # ROI REAL (USDT)
-        # ROI REAL (USDT)
+        "roi_assets": (roi_assets, (raw_states["balances"], raw_states["close"], (asset, currency))),
+        "roi_currency": (roi_currency, (raw_states["balances"], raw_states["close"], (asset, currency))),
         "roi": (roi_gross, (raw_states["balances"], raw_states["close"], (asset, currency), None)),
-        # BENCHMARK (BTC - Buy & Hold) -> Mantendo nome original "roi_assets" a pedido do user
-        "roi_assets": (roi_base_asset, (raw_states["balances"], raw_states["close"], (asset, currency))),
-        
-        "roi_currency": (roi_quote_currency, (raw_states["balances"], raw_states["close"], (asset, currency))),
         "cagr": (cagr, (states["balance_values"], raw_states["unix"])),
         "sharpe_ratio": (sharpe_ratio, (None, states["wins"], states["losses"])),
         "sortino_ratio": (sortino_ratio, (None, states["losses"])),

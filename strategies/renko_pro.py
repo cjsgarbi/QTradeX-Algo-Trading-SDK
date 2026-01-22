@@ -201,7 +201,6 @@ class RenkoPro(qx.BaseBot):
     def fitness(self, states, raw_states, asset, currency):
         """Métricas de otimização."""
         return [
-            "roi_assets",
             "roi_currency",
             "roi",
             "cagr",
@@ -231,6 +230,7 @@ def main():
         asset=asset,
         currency=currency,
         begin="2025-10-01",
+        #end="2026-01-19",  # Data fixa (opcional)
         end=int(time.time()),
         candle_size=TIMEFRAME,
     )

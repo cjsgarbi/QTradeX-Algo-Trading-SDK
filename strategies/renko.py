@@ -39,7 +39,8 @@ class Renko(qx.BaseBot):
         """Inicialização da estratégia."""
         self.timeframe = TIMEFRAME
         self.fee = FEE
-        
+        self.warmup = 100  # Quantidade de candles para aquecer indicadores
+
         
         # Parâmetros CORRIGIDOS para evitar over-trading
         self.tune = {
@@ -101,7 +102,7 @@ class Renko(qx.BaseBot):
         }
 
     def _calculate_renko(self, close_prices, brick_size):
-        """Calcula bricks Renko verdadeiros."""
+        """Calcula bricks Renko padrão."""
         if len(close_prices) < 2 or brick_size <= 0:
             return np.zeros_like(close_prices)
         
@@ -214,7 +215,6 @@ class Renko(qx.BaseBot):
     def fitness(self, states, raw_states, asset, currency):
         """Métricas de otimização."""
         return [
-            "roi_assets",
             "roi_currency",
             "roi",
             "cagr",
@@ -227,7 +227,8 @@ class Renko(qx.BaseBot):
 # ===========================================================================
 # CONFIGURAÇÃO GLOBAL
 # ===========================================================================
-TIMEFRAME = 900  # 1 hora (melhor para Renko trend-following)
+# 60=1m, 300=5m, 900=15m, 3600=1h, 14400=4h, 86400=1d
+TIMEFRAME = 900  # Tempo Grafíco
 FEE = 0.1  # 0.1%
 
 
