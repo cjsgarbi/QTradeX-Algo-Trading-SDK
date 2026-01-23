@@ -62,5 +62,47 @@
    "profit_factor": 4.821176623912966,
    "trade_win_rate": 0.8260869565217391
   }
+ },
+ "BEST ROI TUNE_Fri Jan 23 10:56:01 2026_SOL_USDT_900_Fri Jan 23 10:56:01 2026": {
+  "identifier": "BEST ROI TUNE_Fri Jan 23 10:56:01 2026_SOL_USDT_900_Fri Jan 23 10:56:01 2026",
+  "asset": "SOL",
+  "currency": "USDT",
+  "timeframe": 900,
+  "tune": {
+   "atr_period": 21,
+   "atr_multiplier": 2.1526839978829146,
+   "pivot_strength": 4,
+   "stop_atr_mult": 1.5863010858605695,
+   "min_atr_filter": 0.692997613071944,
+   "trend_filter": 0
+  },
+  "results": {
+   "roi": 1.1824046370712546,
+   "cagr": 3.822234242733609,
+   "maximum_drawdown": 0.08268496908132522,
+   "profit_factor": 2.677403909816588,
+   "trade_win_rate": 0.7222222222222222
+  }
+ },
+ "BEST ROI TUNE_Fri Jan 23 11:06:41 2026_SOL_USDT_300_Fri Jan 23 11:06:41 2026": {
+  "identifier": "BEST ROI TUNE_Fri Jan 23 11:06:41 2026_SOL_USDT_300_Fri Jan 23 11:06:41 2026",
+  "asset": "SOL",
+  "currency": "USDT",
+  "timeframe": 300,
+  "tune": {
+   "atr_period": 13.283358861581075,
+   "atr_multiplier": 2.1346490596455743,
+   "pivot_strength": 5,
+   "stop_atr_mult": 1.8370984507923744,
+   "min_atr_filter": 0.4177801098587232,
+   "trend_filter": 5
+  },
+  "results": {
+   "roi": 1.1047340016088127,
+   "cagr": 2.5922099611637224,
+   "maximum_drawdown": 0.11058962227549345,
+   "profit_factor": 4.057078443638533,
+   "trade_win_rate": 0.8
+  }
  }
 }

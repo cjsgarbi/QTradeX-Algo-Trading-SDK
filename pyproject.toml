@@ -31,7 +31,9 @@ dependencies = [
     "websocket-client",
     "coincurve",
     "python-dotenv",
+    "tqdm",
 ]
+
 
 
 

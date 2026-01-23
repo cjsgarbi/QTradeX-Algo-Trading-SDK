@@ -61,7 +61,6 @@ A QX bot generally consists of the following components:
 
 ```python
 import qtradex as qx
-from qtradex.indicators import tulipy_wrapped as tu
 from qtradex.private.signals import Buy, Sell, Thresholds
 
 class Bot(qx.core.BaseBot):
@@ -79,8 +78,8 @@ class Bot(qx.core.BaseBot):
 
     def indicators(self, data):
         metrics = {}
-        metrics["ema"] = tu.ema(data["close"], self.tune["ema"])
-        metrics["std"] = tu.stddev(data["close"], self.tune["std"])
+        metrics["ema"] = qx.ti.ema(data["close"], self.tune["ema"])
+        metrics["std"] = qx.ti.stddev(data["close"], self.tune["std"])
         return metrics
 
     def strategy(self, tick_info, indicators):
@@ -125,12 +124,12 @@ Indicators are key to the decision-making process of your trading strategy. In Q
 ```python
 def indicators(self, data):
     metrics = {}
-    metrics["ema"] = tu.ema(data["close"], self.tune["ema"])
-    metrics["std"] = tu.stddev(data["close"], self.tune["std"])
+    metrics["ema"] = qx.ti.ema(data["close"], self.tune["ema"])
+    metrics["std"] = qx.ti.stddev(data["close"], self.tune["std"])
     return metrics
 ```
 
-In this example, we use the `tulipy` library to calculate the **Exponential Moving Average (EMA)** and **Standard Deviation (STD)** for the closing price.
+In this example, we use the project's native technical indicators (`qx.ti`) to calculate the **Exponential Moving Average (EMA)** and **Standard Deviation (STD)** for the closing price.
 
 ---
 
@@ -243,7 +242,7 @@ You can create bots that trade multiple assets (e.g., BTC/USDT, ETH/USDT) simult
 - **QX Documentation**: *todo*
 - **QX GitHub Repository**: [QX GitHub](https://github.com/squidKid-deluxe/qtradex)
 - **Trading Strategies**: Learn about various strategies like moving averages, momentum, mean reversion, etc.
-- **Python Technical Analysis Libraries**: Explore libraries like `Tulipy`, `TA-Lib`, or `Pandas` for advanced technical analysis.
+- **Python Technical Analysis Libraries**: Explore libraries like `Pandas-TA` or `Numpy` for advanced technical analysis.
 
 ---
 

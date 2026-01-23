@@ -779,11 +779,8 @@ class AION:
                 if st.evaluated > opts.epochs:
                     print(it("green", f"\n🎯 COMPLETED! Backtests:{st.evaluated} ROI:{self._scalar(best['roi'][0]['roi']):.4f}"))
                     break
-                if st.stagnation > opts.improvements:
-                    print(it("yellow", f"\n⚠️ STAGNATED! Backtests:{st.evaluated} Stag:{st.stagnation} ROI:{self._scalar(best['roi'][0]['roi']):.4f}"))
-                    break
-                if st.stagnation > 500 and st.skip_rate > 0.8:
-                    print(it("cyan", f"\n🏁 CONVERGED! Backtests:{st.evaluated} ROI:{self._scalar(best['roi'][0]['roi']):.4f}"))
+                if st.stagnation > 500:
+                    print(it("cyan", f"\n🏁 CONVERGED (Stagnation LimitReached)! Backtests:{st.evaluated} ROI:{self._scalar(best['roi'][0]['roi']):.4f}"))
                     break
                 
                 # Dynamic Reheat (Quantum Pulse) during exploitation if stagnant

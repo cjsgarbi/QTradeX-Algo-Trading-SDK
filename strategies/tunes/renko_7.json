@@ -43,5 +43,49 @@
    "maximum_drawdown": 0.1467933666449659,
    "trade_win_rate": 0.35714285714285715
   }
+ },
+ "BEST ROI TUNE_Fri Jan 23 11:25:18 2026_SOL_USDT_900_Fri Jan 23 11:25:18 2026": {
+  "identifier": "BEST ROI TUNE_Fri Jan 23 11:25:18 2026_SOL_USDT_900_Fri Jan 23 11:25:18 2026",
+  "asset": "SOL",
+  "currency": "USDT",
+  "timeframe": 900,
+  "tune": {
+   "atr_len": 14,
+   "atr_mult": 2.4159062413809456,
+   "min_bricks": 5,
+   "ema_trend": 61.05479282305096,
+   "rsi_len": 13,
+   "rsi_confirm_bull": 52.75332170204298,
+   "rsi_confirm_bear": 55
+  },
+  "results": {
+   "roi": 1.7159908002358273,
+   "roi_currency": 1.7159908002358273,
+   "cagr": 1.6756503216183454,
+   "maximum_drawdown": 0.14978791247375495,
+   "trade_win_rate": 0.5
+  }
+ },
+ "BEST ROI TUNE_Fri Jan 23 12:22:46 2026_SOL_USDT_300_Fri Jan 23 12:22:46 2026": {
+  "identifier": "BEST ROI TUNE_Fri Jan 23 12:22:46 2026_SOL_USDT_300_Fri Jan 23 12:22:46 2026",
+  "asset": "SOL",
+  "currency": "USDT",
+  "timeframe": 300,
+  "tune": {
+   "atr_len": 20,
+   "atr_mult": 3.055351727462524,
+   "min_bricks": 5,
+   "ema_trend": 33,
+   "rsi_len": 19,
+   "rsi_confirm_bull": 51,
+   "rsi_confirm_bear": 45
+  },
+  "results": {
+   "roi": 1.0367111706499776,
+   "roi_currency": 1.0367111706499776,
+   "cagr": 1.5014911917174776,
+   "maximum_drawdown": 0.10376594883575917,
+   "trade_win_rate": 0.4666666666666667
+  }
  }
 }

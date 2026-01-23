@@ -45,9 +45,9 @@ Whether you're exploring a simple EMA crossover or engineering a strategy with 2
 
 - 🧠 **Bot Development**: Extend `BaseBot` to craft custom strategies
 - 🔁 **Backtesting**: Plug-and-play CLI & code-based testing
-- 🧬 **Optimization**: Use QPSO or LSGA to fine-tune parameters
+- 🧬 **Optimization**: Use **AION** (Adaptive AI), QPSO, or LSGA to fine-tune parameters
 - 📊 **Indicators**: **Pandas-TA** integration (Pure Python) - No C++ required!
-- 🌐 **Data Sources**: Pull candles from 100+ CEXs/DEXs with CCXT & BitShares (Native)
+- 🌐 **Data Sources**: Pull candles from 100+ CEXs with CCXT (now with **Progress Bars**! 📥)
 - 📈 **Performance Metrics**: Evaluate bots with ROI, Sortino, Win Rate
 - 🤖 **Speed**: Up to 50+ backtests/sec on low-end hardware
 
@@ -84,11 +84,11 @@ cd QTradeX
 # Recommended: Use 'uv' for blazing fast installation
 pip install uv
 uv venv
-# Windows
-.venv\Scripts\activate
+# Windows (PowerShell)
 .\.venv\Scripts\Activate.ps1
+
 # Linux/Mac
-source .venv/bin/activate 
+source .venv/bin/activate
 
 # Install (All dependencies are now pure Python wheels)
 uv pip install -e .
@@ -144,6 +144,13 @@ We provide a **Standard Template** to help you build compatible strategies insta
    This will open the QTradeX interactive menu automatically.
 
 🔗 See more bots in [QTradeX AI Agents](https://github.com/squidKid-deluxe/QTradeX-AI-Agents)
+
+---
+
+## 💎 Featured Strategies
+
+- **strategy_base.py**: Standard template for building complex, AI-compatible bots.
+- **AION Optimizer**: Our most advanced adaptive AI engine for hyper-parameter tuning.
 
 ---
 

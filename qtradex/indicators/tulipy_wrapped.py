@@ -1,3 +1,11 @@
+"""
+LEGACY WRAPPER FOR TULIPY
+-------------------------
+This module provides a compatibility layer for bots that were built using the original Tulipy syntax.
+It is now backed by `pandas_ta` and `numpy` to ensure 100% Windows compatibility (Pure Python).
+
+RECOMMENDED: Use `qx.ti` (Technical Indicators) gateway for all new strategies.
+"""
 import numpy as np
 import pandas as pd
 import pandas_ta as ta
