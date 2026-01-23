@@ -6,7 +6,7 @@ from qtradex.common.utilities import it
 from qtradex.core.backtest import backtest, trade
 from qtradex.core.base_bot import Info
 from qtradex.plot.utilities import unix_to_stamp
-from qtradex.private.signals import Thresholds
+from qtradex.private.signals import Thresholds, Hold, Buy, Sell
 from qtradex.private.wallet import PaperWallet
 from qtradex.public.utilities import fetch_composite_data
 
@@ -94,127 +94,105 @@ def papertrade(bot, data, wallet=None, tick_size=60 * 15, tick_pause=60 * 5, **k
     now = int(time.time())
     data.end = now
     bot.info._set("start", now)
-    # we only need `bot.autorange` worth of (daily) candles
-    # doubled for better accuracy on the `last_trade`
-    # 86400 = segundos por dia (autorange retorna dias)
-    window = (bot.autorange() * 86400) * 6
-    data.begin = data.end - window
+    
+    # 1. Calcular quantos candles precisamos para aquecer os indicadores
+    # Prioridade: bot.warmup (definido pela estratégia) ou um default seguro (100)
+    warmup_candles = int(getattr(bot, 'warmup', 100)) + 5
+    
+    window = warmup_candles * tick_size
+    data.begin = now - window
+    
+    print(f"[{data.asset}/{data.currency}] Buscando {warmup_candles} candles para warmup...")
 
-    # allow for different candle sizes whilst maintaining the type of the parameter
-    for k, v in list(bot.tune.items()):
-        if k.endswith("_period"):
-            if isinstance(v, float):
-                bot.tune[k] = v * (86400 / tick_size)
-            else:
-                bot.tune[k] = int(v * (86400 / tick_size))
-
-    # fetch new ten minute candle data with this exchange and pair
+    # 2. Buscar os dados da exchange
     data, raw_15m = fetch_composite_data(data, new_size=tick_size)
     bot.info._set("live_data", raw_15m)
+    
+    print(f"[{data.asset}/{data.currency}] Dados carregados: {len(data['close'])} candles")
 
-    # make the matplotlib plot update live
-    plt.ion()
-    _, raw_states, _ = backtest(
-        bot,
-        data,
-        wallet,
-        block=False,
-        return_states=True,
-        range_periods=False,
-        fine_data=raw_15m,
-        always_trade="smart",
-        show=True,
-        **kwargs,
-    )
+    # Inicializar o preço da wallet (necessário para wallet.value() funcionar)
+    wallet.value((data.asset, data.currency), data['close'][-1])
 
-    # update the plot
-    plt.pause(0.1)
-
-    # attempt to get the last trade, defaulting if there wasn't one
-    last_trade = raw_states["trades"][-1] if raw_states["trades"] else None
+    # 3. Calcular indicadores para aquecer
+    print(f"[{data.asset}/{data.currency}] Aquecendo indicadores...")
+    indicators = bot.indicators(data)
+    
+    # 4. Inicializar estado como Neutro
+    last_trade = None
     last_trade_time = 0
+    bot.reset()
+
+    print(f"[{data.asset}/{data.currency}] Iniciando trade em tempo real...")
+    print("-" * 50)
+    
+    plt.ion()
 
     # main tick loop
-    # note most of this is the same as the backtest loop, we're just doing it every
-    # `tick_size` with fresh data and printing/plotting what the bot would do
     tick = 0
+    # O buffer inicial define o tamanho da nossa janela de warmup constante em RAM
+    max_len = len(data["unix"])
+    # CORREÇÃO: Inicializa com o candle ATUAL do relógio, não o último dos dados
+    # Isso garante que o primeiro tick só dispare no PRÓXIMO fechamento
+    last_candle_unix = (int(time.time()) // tick_size) * tick_size
+    
     while True:
-        tick += 1
         now = int(time.time())
+        # Sincronismo Natural: O candle atual no relógio do sistema
+        current_candle_start = (now // tick_size) * tick_size
 
-        # Fetch the latest data for this tick:
-        # Because of the way the Data class works, if we ask for all the data we need
-        # it will automagically use the cache for all but the latest candle, so there's
-        # no need to to worry about popping old candles and appending new ones here.
-        data.candle_size = data.base_size
-        data.update_candles(now - window, now)
-        data, raw_15m = fetch_composite_data(data, new_size=tick_size)
-        bot.info._set("live_data", raw_15m)
+        # POLLING: Só entra no processamento se o candle do relógio for novo
+        if current_candle_start > last_candle_unix:
+            tick += 1
+            
+            # 1. Buscar dados atualizados usando a janela completa de warmup
+            try:
+                data.candle_size = data.base_size
+                data.update_candles(now - window, now)
+                data, raw_15m = fetch_composite_data(data, new_size=tick_size)
+                last_candle_unix = current_candle_start
+                bot.info._set("live_data", raw_15m)
+            except Exception as e:
+                print(f"Error fetching new candle: {e}. Retrying...")
+                plt.pause(2)
+                continue
 
-        # plot the latest data
-        # technically, this runs the strategy at the current tick for us, so we could
-        # just "execute" the most recent operation, but if the strategy relied on wallet
-        # balances, we'd have to re-calculate the strategy anyway
-        backtest(
-            bot,
-            data,
-            wallet.copy(),
-            block=False,
-            range_periods=False,
-            fine_data=raw_15m,
-            always_trade="smart",
-            show=False,
-        **kwargs,
-        )
+            # the current tick is inherently the last tick
+            tick_data = {k: v[-1] for k, v in data.items()}
+
+            wallet._protect()
+            signal = bot.strategy(
+                {"last_trade": last_trade, "unix": now, "wallet": wallet, **tick_data},
+                indicators := bot.indicators(data),
+            )
+            # get the bot's execution decision (Buy, Sell, Hold)
+            operation = bot.execution(signal, indicators, wallet)
+
+            # 3. Execução obediente do sinal
+            if isinstance(operation, (Buy, Sell)):
+                initial_balances = dict(wallet.items())
+                wallet._release()
+                wallet, executed_op = trade(
+                    data.asset, data.currency, operation, wallet, tick_data, now
+                )
+                
+                if executed_op is not None:
+                    new_balances = dict(wallet.items())
+                    print_trade(
+                        data, initial_balances, new_balances, executed_op, now, last_trade_time
+                    )
+                    last_trade = executed_op
+                    last_trade_time = now
+            
+            elif isinstance(operation, Hold) or operation is None:
+                # Estratégia decidiu manter posição
+                pass
+
+            # Heartbeat informativo
+            status_signal = type(signal).__name__ if signal else "Hold"
+            time_str = time.strftime("%H:%M:%S", time.localtime(now))
+            print(f"[{time_str}] [{data.asset}/{data.currency}] Tick {tick:03d} | Price: {tick_data['close']:.2f} | Signal: {status_signal}")
+            print("-" * 50)
+
+        # Polling de alta frequência: Checa a cada 0.1s a virada do relógio
         plt.pause(0.1)
 
-        # reset the bot
-        bot.reset()
-
-        # calculate indicators
-        indicators = bot.indicators(data)
-
-        # the current tick is inherently the last tick
-        tick_data = {k: v[-1] for k, v in data.items()}
-
-        # make the wallet read-only before passing it to the user
-        # this is not fail-safe, just helpful to keep accidental modifications out
-        wallet._protect()
-        signal = bot.strategy(
-            # Note that unlike in backtest, we don't pass indicators as part of
-            # tick_data.  This is simply a consequence of how the data is handled; so
-            # when writing botscripts, don't rely on having indicators in tick_data
-            {"last_trade": last_trade, "unix": now, "wallet": wallet, **tick_data},
-            # pass the strategy this tick's indicators
-            {k: v[-1] for k, v in indicators.items()},
-        )
-        # get the bot's decision
-        operation = bot.execution(signal, indicators, wallet)
-        if tick == 1 and operation is None:
-            operation = last_trade
-        # keep the last trade
-        elif operation is not None:
-            last_trade = operation
-
-        # since this is a papertrade, not a backtest, we'll print the trade
-        # as well as before & after balances and a few other things
-        if operation is not None:
-            initial_balances = dict(wallet.items())
-            # release write protection and trade (note this is NOT live trading)
-            wallet._release()
-            wallet, _ = trade(
-                data.asset, data.currency, operation, wallet, tick_data, now
-            )
-
-            # print statistics
-            new_balances = dict(wallet.items())
-            print_trade(
-                data, initial_balances, new_balances, operation, now, last_trade_time
-            )
-
-            # update the last trade time
-            last_trade_time = now
-
-        start = time.time()
-        while time.time() - start < tick_pause:
-            plt.pause(tick_pause - (time.time() - start))

@@ -628,11 +628,13 @@ class AION:
                     # Skip recorded inside _should_skip via st.record_skip()
                     # Temperature already adjusted automatically
                     
-                    # Micro-Reheat Pulse: If stuck, jump further
+                    # Micro-Reheat Pulse: If stuck, increase temperature instead
                     if st.consecutive_skips > 20:
-                        boost *= self.options.quantum_pulse_intensity
+                        st.temperature = min(self.options.max_temperature, 
+                                            st.temperature * self.options.quantum_pulse_intensity)
                         
                     continue
+
                 
                 # ═══ EVALUATOR AGENT ═══
                 h = self._hash_tune(bot.tune)

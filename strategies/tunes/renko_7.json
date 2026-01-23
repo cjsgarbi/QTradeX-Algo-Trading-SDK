@@ -21,5 +21,27 @@
    "maximum_drawdown": 0.1467933666449659,
    "trade_win_rate": 0.35714285714285715
   }
+ },
+ "BEST ROI TUNE_Thu Jan 22 20:22:56 2026_BTC_USDT_900_Thu Jan 22 20:22:56 2026": {
+  "identifier": "BEST ROI TUNE_Thu Jan 22 20:22:56 2026_BTC_USDT_900_Thu Jan 22 20:22:56 2026",
+  "asset": "BTC",
+  "currency": "USDT",
+  "timeframe": 900,
+  "tune": {
+   "atr_len": 14.57667149450823,
+   "atr_mult": 1.8901246839569579,
+   "min_bricks": 5,
+   "ema_trend": 30,
+   "rsi_len": 12,
+   "rsi_confirm_bull": 53.86348633765693,
+   "rsi_confirm_bear": 49.50220293308973
+  },
+  "results": {
+   "roi": 1.077804095392021,
+   "roi_currency": 1.077804095392021,
+   "cagr": 0.264128927556188,
+   "maximum_drawdown": 0.1467933666449659,
+   "trade_win_rate": 0.35714285714285715
+  }
  }
 }

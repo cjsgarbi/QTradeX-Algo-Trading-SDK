@@ -139,6 +139,12 @@ class Data:
     def __getitem__(self, index):
         return self.raw_candles[index]
 
+    def __contains__(self, key):
+        return key in self.raw_candles
+
+    def __iter__(self):
+        return iter(self.raw_candles)
+
     def update_candles(self, begin, end):
         """
         Re-initialize this class with new start and end.  This method is provided mostly
