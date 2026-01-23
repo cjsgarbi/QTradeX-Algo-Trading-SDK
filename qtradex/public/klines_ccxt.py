@@ -3,12 +3,14 @@ import time
 
 import ccxt
 import numpy as np
+from tqdm import tqdm
 from qtradex.common.utilities import (format_timeframe, rotate, to_iso_date,
                                       trace, unformat_timeframe)
 from qtradex.public.utilities import BadTimeframeError, clip_to_time_range
 
 DETAIL = False
 ATTEMPTS = 5
+
 
 
 def klines_ccxt(exchange, asset, currency, start, end, interval):
@@ -133,12 +135,21 @@ def paginate_candles(api, start, end, interval):
     overlap = 2
 
     # Determine number of candles we require
-    depth = int(math.ceil((end - start) / float(interval)))
+    total_depth = int(math.ceil((end - start) / float(interval)))
+    depth = total_depth
+    
     # Attempt to gather all the candles at once
     data = []
+    
+    # Create progress bar
+    pbar = tqdm(total=total_depth, desc=f"📥 Downloading {api['pair']}", unit=" candles", 
+                bar_format='{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}]')
+    
     last_chunk = candles(api, start, interval, limit=depth)
     data.extend(last_chunk)
     depth -= len(last_chunk)
+    pbar.update(len(last_chunk))
+    
     # If that didn't return enough
     while depth > 0 and last_chunk:
         # Find how many are left
@@ -152,7 +163,11 @@ def paginate_candles(api, start, end, interval):
         last_chunk = candles(api, start, interval, limit=depth)
         data.extend(last_chunk)
         depth -= len(last_chunk)
+        pbar.update(len(last_chunk))
+    
+    pbar.close()
     return data
+
 
 
 def candles(api, start, interval, limit):
