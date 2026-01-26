@@ -51,11 +51,11 @@ def save_tune(bot, identifier=None):
     
     Formato simplificado:
     {
-        "asset": "BTC",
-        "currency": "USDT", 
+        "asset"    : "BTC",
+        "currency" : "USDT", 
         "timeframe": 900,
-        "tune": {...},
-        "results": {...}
+        "tune"     : {...},
+        "results"  : {...}
     }
 
     Parameters:
@@ -94,13 +94,38 @@ def save_tune(bot, identifier=None):
     identifier_full = f"{identifier_base}_{asset}_{currency}_{timeframe}_{time.ctime()}"
     
     # Formato limpo e simples do novo registro
+    # Pega informações de período do bot (passadas pelo otimizador)
+    begin_ts = getattr(bot, '_tune_begin', None)
+    end_ts = getattr(bot, '_tune_end', None)
+    
+    # Calcula datas formatadas e duração
+    begin_date = None
+    end_date = None
+    duration = None
+    
+    if begin_ts and end_ts:
+        begin_date = time.strftime("%d/%m/%Y", time.localtime(begin_ts))
+        end_date = time.strftime("%d/%m/%Y", time.localtime(end_ts))
+        total_days = (end_ts - begin_ts) / 86400
+        months = int(total_days // 30)
+        days_rem = int(total_days % 30)
+        if months > 0:
+            duration = f"{months} Meses e {days_rem} Dias"
+            if months == 1: duration = duration.replace("Meses", "Mês")
+            if days_rem == 1: duration = duration.replace("Dias", "Dia")
+        else:
+            duration = f"{days_rem} Dias" if days_rem != 1 else "1 Dia"
+    
     new_record = {
         "identifier": identifier_full,
-        "asset": asset,
-        "currency": currency,
-        "timeframe": timeframe,
-        "tune": tune_data,
-        "results": results_data
+        "begin_date": begin_date,
+        "end_date"  : end_date,
+        "duration"  : duration,
+        "asset"     : asset,
+        "currency"  : currency,
+        "timeframe" : timeframe,
+        "tune"      : tune_data,
+        "results"   : results_data
     }
     
     # Adiciona ao conteúdo existente usando identifier único como chave

@@ -40,10 +40,11 @@ from qtradex.optimizers.utilities import bound_neurons, end_optimization, plot_s
 
 class OptState:
     """Centralized state. All agents read/write here."""
+    # AION v2025.16: Added 'promising_regions' for guided mutations
     __slots__ = ('iteration', 'improvements', 'stagnation', 'skips', 'evaluated',
                  'cache', 'gradients', 'elite', 'param_hist', 'synapses', 
                  'neuron_impacts', 'recent_impr', 'temperature', 'consecutive_skips',
-                 'skip_history', 'last_skip_reason', 'best_trophy')
+                 'skip_history', 'last_skip_reason', 'best_trophy', 'promising_regions')
     
     def __init__(self, initial_temp=1.0):
         self.iteration = 0
@@ -63,6 +64,7 @@ class OptState:
         self.skip_history = []      # History of skipped tunes for learning
         self.last_skip_reason = ''  # Debug: reason for last skip
         self.best_trophy = None     # Best result with MDD < 25% (The Trophy)
+        self.promising_regions = {} # AION v2025.16: {param: [values that gave ROI > 1.0]}
     
     @property
     def phase(self):
@@ -116,7 +118,9 @@ class AIONoptions:
         self.cooldown = 0
         self.show_terminal = True
         self.print_tune = True
-        self.plot_period = 100
+        self.show_terminal = True
+        self.print_tune = True
+        self.plot_period = 200 # AION v2025.15: Reduced plotting freq to avoid UI freeze
         self.quantum_tunneling_prob = 0.05
         self.min_temperature = 0.05
         self.max_temperature = 3.0
@@ -282,7 +286,17 @@ class AION:
             for n in neurons:
                 if not bot.clamps[n][3]: continue
                 is_int = isinstance(bot.tune[n], (int, np.integer))
-                step = self._levy_step(bot.clamps[n][0], bot.clamps[n][2], boost, n, bot.tune[n])
+                
+                # AION v2025.16: GUIDED MUTATION - Jump TO promising regions
+                # 50% chance to target a known profitable region
+                if st.promising_regions.get(n) and random() < 0.50:
+                    target_value = choice(st.promising_regions[n])
+                    step = target_value - bot.tune[n]  # DIRECTED jump
+                    # Add small noise to avoid exact duplicates
+                    step += (random() - 0.5) * (bot.clamps[n][2] - bot.clamps[n][0]) * 0.05
+                else:
+                    step = self._levy_step(bot.clamps[n][0], bot.clamps[n][2], boost, n, bot.tune[n])
+                
                 if is_int: step = int(step) or (1 if random() > 0.5 else -1)
                 temp_tune[n] += step
             
@@ -393,8 +407,15 @@ class AION:
         # ═══ BAD REGION ANALYSIS (using param_hist from LEARNER) ═══
         
         bad_params, total_analyzed = 0, 0
-        threshold = best_roi * 0.30  # Region is bad if ROI < 30% of best
         
+        # AION v2025.15: Stricter Intelligence (Avoid "Results Ruins")
+        # If we have a profitable config (>1.0), we aggressively skip losing regions (<1.0)
+        # We also increased the requirement relative to best_roi (30% -> 60%)
+        if best_roi > 1.0:
+            threshold = max(0.98, best_roi * 0.60)
+        else:
+            threshold = best_roi * 0.90 # If failing, only accept things near the "best failure"
+
         for param, value in tune.items():
             hist = st.param_hist.get(param, [])
             if len(hist) < 5 or param not in clamps:
@@ -427,8 +448,9 @@ class AION:
         
         # ═══ FINAL DECISION ═══
         
-        # Skip if >70% of parameters are in bad regions
-        if total_analyzed > 0 and bad_params / total_analyzed > 0.70:
+        # Skip if >50% (was 70%) of parameters are in bad regions
+        # We want to exit bad paths faster.
+        if total_analyzed > 0 and bad_params / total_analyzed > 0.50:
             st.record_skip(tune, reason=f'bad_region:{bad_params}/{total_analyzed}')
             return True
         
@@ -539,6 +561,19 @@ class AION:
             
             # Clear skip_history when good solution found (regions may have changed)
             st.skip_history = []
+            
+            # AION v2025.16: Learn PROMISING REGIONS for guided mutations
+            # Only save regions that actually made money (ROI > 1.0)
+            if roi > 1.0:
+                for param, value in new_tune.items():
+                    regions = st.promising_regions.setdefault(param, [])
+                    try:
+                        regions.append(float(value))
+                    except (ValueError, TypeError):
+                        regions.append(value)
+                    # Keep only top 20 best values per parameter
+                    if len(regions) > 20:
+                        regions.pop(0)
         else:
             st.stagnation += 1
             # Temperature: increase during exploration
@@ -779,9 +814,15 @@ class AION:
                 if st.evaluated > opts.epochs:
                     print(it("green", f"\n🎯 COMPLETED! Backtests:{st.evaluated} ROI:{self._scalar(best['roi'][0]['roi']):.4f}"))
                     break
-                if st.stagnation > 500:
-                    print(it("cyan", f"\n🏁 CONVERGED (Stagnation LimitReached)! Backtests:{st.evaluated} ROI:{self._scalar(best['roi'][0]['roi']):.4f}"))
+                
+                # AION v2025.15: Increased Convergence Limit (was 500)
+                if st.stagnation > 1000:
+                    print(it("cyan", f"\n🏁 CONVERGED (Stagnation Limit Reached > 1000)! Backtests:{st.evaluated} ROI:{self._scalar(best['roi'][0]['roi']):.4f}"))
                     break
+                
+                # AION v2025.15: Memory Leak Protection
+                if len(st.cache) > 10000:
+                    st.cache = {} # Flush cache to prevent RAM accumulation
                 
                 # Dynamic Reheat (Quantum Pulse) during exploitation if stagnant
                 if st.stagnation > 20 and st.phase == 'exploitation':
@@ -809,5 +850,5 @@ class AION:
                 final_roi_pct = (t_roi - 1.0) * 100
                 print(it("green", f"🏆 Replacing Output with BEST ROI MEMORY (Trophy ROI: {final_roi_pct:.2f}%)"))
 
-        end_optimization(best, opts.print_tune, asset=self.data.asset, currency=self.data.currency)
+        end_optimization(best, opts.print_tune, asset=self.data.asset, currency=self.data.currency, begin_ts=self.data.begin, end_ts=self.data.end)
         return best

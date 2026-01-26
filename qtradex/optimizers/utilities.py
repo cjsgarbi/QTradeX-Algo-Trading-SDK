@@ -123,7 +123,7 @@ def print_tune(score, bot, render=False):
     return msg
 
 
-def end_optimization(best_bots, show, asset="UNKNOWN", currency="UNKNOWN"):
+def end_optimization(best_bots, show, asset="UNKNOWN", currency="UNKNOWN", begin_ts=None, end_ts=None):
     """Salva apenas o BEST ROI (o mais importante)."""
     import time
     
@@ -153,6 +153,8 @@ def end_optimization(best_bots, show, asset="UNKNOWN", currency="UNKNOWN"):
     save_bot.tune = {"tune": bot.tune.copy(), "results": score}
     save_bot._tune_asset = asset
     save_bot._tune_currency = currency
+    save_bot._tune_begin = begin_ts
+    save_bot._tune_end = end_ts
     qx.core.tune_manager.save_tune(save_bot, name)
     
     # Exibe no terminal no mesmo formato JSON
@@ -173,6 +175,8 @@ def merge(tune1, tune2):
     return tune3
 
 
+import gc  # AION v2025.15: Explicit Garbage Collection
+
 def plot_scores(historical, historical_tests, cdx):
     """
     historical is a matrix like this:
@@ -189,12 +193,18 @@ def plot_scores(historical, historical_tests, cdx):
     """
     if not historical:
         return
+        
+    # AION v2025.15: Force Garbage Collection to prevent MemLeak
+    gc.collect()
+    
     plt.clf()
     n_coords = len(historical[0][1])
     coords = list(historical[0][1].keys())
     # initialize empty lists
     lines = [[] for _ in range(n_coords)]
     x_list = []
+    
+    # Extract data
     for mdx, moment in enumerate(historical):
         x_list.append(moment[0])
         if mdx:
@@ -207,23 +217,37 @@ def plot_scores(historical, historical_tests, cdx):
     x_list.append(cdx)
     for idx in range(n_coords):
         lines[idx].append(lines[idx][-1])
-
+        
+    # AION v2025.15: Downsample data for plotting (Max ~1000 points)
+    # Plotting 50k points freezes Matplotlib. We slice it.
+    step = 1
+    total_points = len(x_list)
+    if total_points > 1000:
+        step = total_points // 1000
+    
     sqrt = n_coords**0.5
 
     height = math.ceil(sqrt)
     width = height
 
+    # Handle scatter points (tests) similarly or just plot last N?
+    # Scatter is lighter than Line usually, but let's keep it safe.
     x_list_tests = [i[0] for i in historical_tests]
-
+    
     for idx, coord in enumerate(coords):
         plt.subplot(width, height, idx + 1)
         plt.title(coord)
-        plt.plot(x_list, lines[idx], color="green")
+        
+        # Plot Optimized Slices
+        plt.plot(x_list[::step], lines[idx][::step], color="green")
+        
         plt.xscale("log")
         plt.scatter(
             x_list_tests,
             [i[1][coord] for i in historical_tests],
             color="yellow",
+            s=5 # Small size
         )
     plt.tight_layout()
     plt.pause(0.1)
+

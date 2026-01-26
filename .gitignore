@@ -38,3 +38,6 @@ strategies/renko.py
 strategies/renko_pro.py
 strategies/renko_scalp.py
 strategies/ZigZag_NR.py
+strategies/cthulhu.py
+strategies/ReversalHunter.py
+strategies/ZigZagMomentum.py

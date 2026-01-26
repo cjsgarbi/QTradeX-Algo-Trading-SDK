@@ -354,9 +354,6 @@ def print_backtest_results(bot, states, data, ret, ticks, candle_size):
     from qtradex.core.tune_manager import generate_filename
     from qtradex.common.utilities import read_file, NdarrayDecoder
     
-    # Tune atual
-    print("\n[TUNER SELECTED FROM JSON]:")
-    pprint(bot.tune, indent=4)
     
     # Resultado salvo no JSON
     try:

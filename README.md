@@ -94,6 +94,45 @@ source .venv/bin/activate
 uv pip install -e .
 ```
 
+### 🐧 Linux (WSL) Installation (Pro Tip)
+
+For Windows users who want maximum performance (especially for AI optimization), running via **WSL** is highly recommended.
+
+1. **Install WSL**: Open PowerShell as Admin and run `wsl --install`. (Restart may be required).
+2. **Setup Linux**: Open your terminal (PowerShell or CMD) and type `wsl` (lowercase L, for Windows Subsystem for Linux) to enter. 
+   > [!IMPORTANT]
+   > The command is **`wsl`**
+   
+3. **Install Essentials**: Inside the Linux terminal, install:
+   ```bash
+   sudo apt update && sudo apt install python3-pip python3-venv python3-tk -y
+   ```
+4. **Access Windows Files**: Move to your project folder:
+   ```bash
+   cd /mnt/c/Users/Micro/Desktop/Bot_Qtradex_original/QTradeX-Algo-Trading-SDK
+   ```
+5. **Install & Run**:
+   ```bash
+   # Install uv
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   source $HOME/.cargo/env
+
+   # Setup environment
+   uv venv .venv_linux
+   source .venv_linux/bin/activate
+   uv pip install -e .
+   python3 strategies/strategy_base.py
+   ```
+
+6. **Daily Usage (After Install)**:
+   Every time you open a new terminal:
+   ```bash
+   wsl
+   cd /mnt/c/Users/Micro/Desktop/Bot_Qtradex_original/QTradeX-Algo-Trading-SDK
+   source .venv_linux/bin/activate
+   python3 strategies/renko_scalp.py
+   ```
+
 ### Configuration (New!)
 
 You can now configure your API keys using a `.env` file instead of typing them every time.

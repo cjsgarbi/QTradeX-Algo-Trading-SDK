@@ -277,5 +277,5 @@ class IPSE:
 
             except KeyboardInterrupt:
                 # Save best configurations and exit
-                end_optimization(best_bots, self.options.print_tune, asset=self.data.asset, currency=self.data.currency)
+                end_optimization(best_bots, self.options.print_tune, asset=self.data.asset, currency=self.data.currency, begin_ts=self.data.begin, end_ts=self.data.end)
                 return best_bots

@@ -1,25 +1,51 @@
 {
  "source": "\"\"\"\n\u2554\u2550\u2557\u2554\u2566\u2557\u2566\u2550\u2557\u2554\u2550\u2557\u2554\u2566\u2557\u2554\u2550\u2557\u2550\u2557 \u2566\n\u2551\u2550\u256c\u2557\u2551 \u2560\u2566\u255d\u2560\u2550\u2563 \u2551\u2551\u2551\u2563 \u2554\u2569\u2566\u255d\n\u255a\u2550\u255d\u255a\u2569 \u2569\u255a\u2550\u2569 \u2569\u2550\u2569\u255d\u255a\u2550\u255d\u2569 \u255a\u2550\n\nrenko_pro.py\n\nRenko Pro + MACD - Estrat\u00e9gia Elite Validada\n\nDUPLA PROFISSIONAL: Renko + MACD\n- Renko para identifica\u00e7\u00e3o de tend\u00eancia (filtro de ru\u00eddo)\n- MACD para confirma\u00e7\u00e3o de momentum e for\u00e7a\n\nL\u00d3GICA DE ENTRADA:\n- COMPRA: Brick Verde + MACD acima da Linha de Sinal + Histograma Positivo\n- VENDA: Brick Vermelho + MACD abaixo da Linha de Sinal + Histograma Negativo\n\nGEST\u00c3O DE RISCO:\n- Stop Loss: Revers\u00e3o de 2 bricks OU Histograma muda de cor\n\"\"\"\n\nimport qtradex as qx\nimport numpy as np\nimport time\n\n\nclass RenkoPro(qx.BaseBot):\n    \"\"\"\n    Estrat\u00e9gia Renko + MACD Elite.\n    \n    A dupla mais validada e usada por traders profissionais\n    para alta taxa de acerto em mercados de tend\u00eancia.\n    \"\"\"\n    \n    def __init__(self):\n        \"\"\"Inicializa\u00e7\u00e3o da estrat\u00e9gia.\"\"\"\n        self.timeframe = TIMEFRAME\n        self.fee = FEE\n        \n        # ===================================================================\n        # TUNE: Par\u00e2metros otimiz\u00e1veis (Renko + MACD)\n        # ===================================================================\n        self.tune = {\n            # Renko\n            \"atr_len\": 14,             # Per\u00edodo do ATR para brick size\n            \"atr_mult\": 2.0,           # Multiplicador do ATR (maior = menos ru\u00eddo)\n            \"min_bricks\": 1,           # Confirma\u00e7\u00e3o m\u00ednima de bricks\n            \n            # MACD\n            \"macd_fast\": 12,           # Per\u00edodo r\u00e1pido do MACD\n            \"macd_slow\": 26,           # Per\u00edodo lento do MACD\n            \"macd_signal\": 9,          # Per\u00edodo da linha de sinal\n        }\n\n        # ===================================================================\n        # CLAMPS: Limites para otimiza\u00e7\u00e3o\n        # ===================================================================\n        self.clamps = {\n            # Renko\n            \"atr_len\":       [10, 14, 21, 1],\n            \"atr_mult\":      [1.5, 2.0, 4.0, 0.25],  # M\u00ednimo 1.5 para evitar over-trading\n            \"min_bricks\":    [1, 1, 3, 1],\n            \n            # MACD\n            \"macd_fast\":     [8, 12, 16, 1],\n            \"macd_slow\":     [20, 26, 32, 1],\n            \"macd_signal\":   [6, 9, 12, 1],\n        }\n\n    def indicators(self, data):\n        \"\"\"Calcula indicadores: Renko + MACD.\"\"\"\n        close = data[\"close\"]\n        high = data[\"high\"]\n        low = data[\"low\"]\n        \n        # === RENKO ===\n        atr = qx.ti.atr(high, low, close, int(self.tune[\"atr_len\"]))\n        atr_clean = atr[~np.isnan(atr)]\n        brick_size = np.mean(atr_clean) * self.tune[\"atr_mult\"] if len(atr_clean) > 0 else 100\n        \n        bricks = self._calculate_renko(close, brick_size)\n        consecutive = self._count_consecutive(bricks)\n        \n        # === MACD ===\n        macd_line, macd_signal, macd_hist = qx.ti.macd(\n            close,\n            int(self.tune[\"macd_fast\"]),\n            int(self.tune[\"macd_slow\"]),\n            int(self.tune[\"macd_signal\"])\n        )\n        \n        # Histograma anterior para detectar mudan\u00e7a de cor\n        macd_hist_prev = np.roll(macd_hist, 1)\n        macd_hist_prev[0] = 0\n        \n        return {\n            \"bricks\": bricks,\n            \"consecutive\": consecutive,\n            \"macd_line\": macd_line,\n            \"macd_signal\": macd_signal,\n            \"macd_hist\": macd_hist,\n            \"macd_hist_prev\": macd_hist_prev,\n        }\n\n    def _calculate_renko(self, close_prices, brick_size):\n        \"\"\"Calcula bricks Renko verdadeiros.\"\"\"\n        if len(close_prices) < 2 or brick_size <= 0:\n            return np.zeros_like(close_prices)\n        \n        bricks = np.zeros(len(close_prices))\n        last_brick_price = close_prices[0]\n        \n        for i in range(1, len(close_prices)):\n            price = close_prices[i]\n            diff = price - last_brick_price\n            \n            if diff >= brick_size:\n                num_bricks = int(diff / brick_size)\n                bricks[i] = num_bricks\n                last_brick_price += num_bricks * brick_size\n            elif diff <= -brick_size:\n                num_bricks = int(abs(diff) / brick_size)\n                bricks[i] = -num_bricks\n                last_brick_price -= num_bricks * brick_size\n        \n        return bricks\n\n    def _count_consecutive(self, bricks):\n        \"\"\"Conta bricks consecutivos na mesma dire\u00e7\u00e3o.\"\"\"\n        consecutive = np.zeros_like(bricks)\n        count = 0\n        last_dir = 0\n        \n        for i in range(len(bricks)):\n            if bricks[i] > 0:\n                count = count + bricks[i] if last_dir >= 0 else bricks[i]\n                last_dir = 1\n            elif bricks[i] < 0:\n                count = count + abs(bricks[i]) if last_dir <= 0 else abs(bricks[i])\n                last_dir = -1\n            consecutive[i] = count * last_dir if last_dir != 0 else 0\n        \n        return consecutive\n\n    def strategy(self, tick_info, indicators):\n        \"\"\"\n        L\u00f3gica de decis\u00e3o Elite: Renko + MACD.\n        \n        COMPRA: Brick Verde + MACD bullish + Histograma Positivo\n        VENDA: Brick Vermelho + MACD bearish + Histograma Negativo\n        \"\"\"\n        brick = indicators[\"bricks\"]\n        consecutive = indicators[\"consecutive\"]\n        macd_line = indicators[\"macd_line\"]\n        macd_signal = indicators[\"macd_signal\"]\n        macd_hist = indicators[\"macd_hist\"]\n        \n        min_bricks = int(self.tune[\"min_bricks\"])\n        \n        # === CONDI\u00c7\u00d5ES DE COMPRA ===\n        renko_bullish = brick > 0 and consecutive >= min_bricks\n        macd_bullish = macd_line > macd_signal and macd_hist > 0\n        \n        # === CONDI\u00c7\u00d5ES DE VENDA ===\n        renko_bearish = brick < 0 and consecutive <= -min_bricks\n        macd_bearish = macd_line < macd_signal and macd_hist < 0\n        \n        # === SINAIS ===\n        long_signal = renko_bullish and macd_bullish\n        short_signal = renko_bearish and macd_bearish\n        \n        if long_signal and not short_signal:\n            return qx.Buy()\n        elif short_signal and not long_signal:\n            return qx.Sell()\n        \n        return None\n\n    def execution(self, signal, indicators, wallet):\n        \"\"\"Executa ordens no pre\u00e7o de mercado.\"\"\"\n        if isinstance(signal, qx.Buy):\n            return qx.Buy()\n        elif isinstance(signal, qx.Sell):\n            return qx.Sell()\n        return signal\n\n    def plot(self, *args):\n        \"\"\"Visualiza\u00e7\u00e3o: Renko + MACD.\"\"\"\n        qx.plot(\n            self.info,\n            *args,\n            (\n                (\"bricks\", \"Renko Bricks\", \"green\", 1, \"Renko\"),\n                (\"consecutive\", \"Consecutive\", \"cyan\", 1, \"Renko\"),\n                (\"macd_line\", \"MACD\", \"blue\", 2, \"MACD\"),\n                (\"macd_signal\", \"Signal\", \"orange\", 2, \"MACD\"),\n                (\"macd_hist\", \"Histogram\", \"white\", 3, \"MACD Hist\"),\n            )\n        )\n\n    def fitness(self, states, raw_states, asset, currency):\n        \"\"\"M\u00e9tricas de otimiza\u00e7\u00e3o.\"\"\"\n        return [\n            \"roi_currency\",\n            \"roi\",\n            \"cagr\",\n            \"sortino\",\n            \"maximum_drawdown\",\n            \"trade_win_rate\",\n        ], {}\n\n\n# ===========================================================================\n# CONFIGURA\u00c7\u00c3O GLOBAL\n# ===========================================================================\nTIMEFRAME = 900  # 15 minutos (ideal para Renko trend-following)\nFEE = 0.1        # 0.1% taxa\n\n\n# ===========================================================================\n# MAIN\n# ===========================================================================\ndef main():\n    \"\"\"Configura e executa a estrat\u00e9gia.\"\"\"\n    asset, currency = \"BTC\", \"USDT\"\n    wallet = qx.PaperWallet({asset: 0, currency: 10000}, fee=FEE)\n    \n    data = qx.Data(\n        exchange=\"binance\",\n        asset=asset,\n        currency=currency,\n        begin=\"2025-10-01\",\n        #end=\"2026-01-19\",  # Data fixa (opcional)\n        end=int(time.time()),\n        candle_size=TIMEFRAME,\n    )\n    \n    # python strategies/renko_pro.py\n    bot = RenkoPro()\n    qx.dispatch(bot, data, wallet)\n\n\nif __name__ == \"__main__\":\n    main()\n",
- "BEST ROI TUNE_Thu Jan 22 16:30:17 2026_BTC_USDT_900_Thu Jan 22 16:30:17 2026": {
-  "identifier": "BEST ROI TUNE_Thu Jan 22 16:30:17 2026_BTC_USDT_900_Thu Jan 22 16:30:17 2026",
-  "asset": "BTC",
+ "BEST ROI TUNE_Sat Jan 24 17:44:25 2026_KAIA_USDT_900_Sat Jan 24 17:44:25 2026": {
+  "identifier": "BEST ROI TUNE_Sat Jan 24 17:44:25 2026_KAIA_USDT_900_Sat Jan 24 17:44:25 2026",
+  "begin_date": "01/10/2025",
+  "end_date": "24/01/2026",
+  "duration": "3 Meses e 25 Dias",
+  "asset": "KAIA",
   "currency": "USDT",
   "timeframe": 900,
   "tune": {
-   "atr_len": 15,
-   "atr_mult": 1.5,
-   "min_bricks": 1.1261612643841292,
-   "macd_fast": 15.303740371787784,
-   "macd_slow": 32,
-   "macd_signal": 12
+   "atr_len": 13,
+   "atr_mult": 3.7214055681649167,
+   "min_bricks": 2,
+   "macd_fast": 8,
+   "macd_slow": 20,
+   "macd_signal": 9
   },
   "results": {
-   "roi": 0.8173488442882466,
-   "roi_assets": 1.046235104409095,
-   "roi_currency": 0.8173488442882466,
-   "cagr": -0.22217821198881038,
-   "maximum_drawdown": 0.1270251065100545,
-   "trade_win_rate": 0.41304347826086957
+   "roi": 1.6805666639823422,
+   "roi_currency": 1.6805666639823422,
+   "cagr": 11.550666153685924,
+   "maximum_drawdown": 0.24945042645325566,
+   "trade_win_rate": 0.5882352941176471
+  }
+ },
+ "BEST ROI TUNE_Sat Jan 24 17:54:18 2026_KAIA_USDT_300_Sat Jan 24 17:54:18 2026": {
+  "identifier": "BEST ROI TUNE_Sat Jan 24 17:54:18 2026_KAIA_USDT_300_Sat Jan 24 17:54:18 2026",
+  "begin_date": "01/11/2025",
+  "end_date": "24/01/2026",
+  "duration": "2 Meses e 24 Dias",
+  "asset": "KAIA",
+  "currency": "USDT",
+  "timeframe": 300,
+  "tune": {
+   "atr_len": 23,
+   "atr_mult": 3.9773502297006136,
+   "min_bricks": 3,
+   "macd_fast": 12,
+   "macd_slow": 26,
+   "macd_signal": 9
+  },
+  "results": {
+   "roi": 1.2546877639196534,
+   "roi_currency": 1.2546877639196534,
+   "cagr": 2.532430520011022,
+   "maximum_drawdown": 0.10795315366824404,
+   "trade_win_rate": 0.35714285714285715
   }
  }
 }

@@ -536,7 +536,9 @@ def ad(high, low, close, volume):
 @cache
 @float_period(4,)
 def mfi(high, low, close, volume, period):
-    return ta.mfi(pd.Series(high), pd.Series(low), pd.Series(close), pd.Series(volume), length=int(period)).to_numpy()
+    res = ta.mfi(pd.Series(high), pd.Series(low), pd.Series(close), pd.Series(volume), length=int(period))
+    if res is None: return np.zeros_like(close)
+    return res.to_numpy()
 
 @cache
 def emv(high, low, volume):

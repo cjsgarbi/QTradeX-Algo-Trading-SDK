@@ -271,8 +271,7 @@ class strategy_base(qx.BaseBot):
         """
         Define as métricas usadas para avaliar e otimizar a estratégia.
         
-        Métricas disponíveis:
-        - "roi_assets": Retorno em ativos
+        Métricas disponíveis:        
         - "roi_currency": Retorno em moeda
         - "roi": Retorno geral
         - "cagr": Taxa de crescimento anual composta

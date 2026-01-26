@@ -97,5 +97,22 @@ Como o espaço de parâmetros é tecnicamente infinito, o AION utiliza critério
 3. **Limite de Segurança (Hard Limit):** Existe um limite de 50.000 iterações para evitar loops infinitos e desperdício excessivo de recursos.
 4. **Interrupção Manual (Ctrl+C):** O usuário pode parar a qualquer momento. O AION irá capturar o comando e mostrar imediatamente o **Melhor Resultado (Elite)** encontrado até aquele segundo, formatado como um dicionário pronto para uso.
 
+
+### 8. Melhorias de Performance (v2025.15)
+Para garantir estabilidade em sessões longas e evitar travamentos da interface, o AION implementa proteções automáticas:
+
+- **Proteção de Memória (Cache Flushing):** Se o cache de resultados ultrapassar 10.000 itens, o sistema realiza uma limpeza automática para liberar memória RAM.
+- **Gráficos Otimizados:** A atualização visual ocorre a cada 200 iterações (anteriormente 100), reduzindo significativamente o "congelamento" da janela do terminal.
+- **Paciência Estendida:** O limite de estagnação foi dobrado para **1000 iterações**, permitindo que o enxame explore estratégias complexas (como Renko) sem desistir prematuramente.
+
+### 9. Saltos Inteligentes Guiados (v2025.16)
+O AION agora possui uma **Memória de Regiões Promissoras** que guia as mutações:
+
+- **Memória de Sucesso:** Quando o sistema encontra uma configuração com ROI > 1.0 (lucro real), ele salva os valores dos parâmetros como "promissores".
+- **Mutação Guiada:** Em vez de saltos aleatórios, o Mutador tem 50% de chance de **mirar** diretamente em uma região que já deu lucro antes.
+- **Colaboração entre Agentes:** O Aprendiz alimenta a memória → O Mutador usa para escolher destino → O Filtro bloqueia o que é ruim.
+
+Isso transforma os agentes em uma **equipe coordenada**, acelerando a convergência para soluções lucrativas.
+
 ---
 *Desenvolvido para traders quantitativos que buscam a fronteira entre tecnologia quântica e inteligência artificial.*
